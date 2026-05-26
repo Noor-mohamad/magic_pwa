@@ -1,0 +1,63 @@
+# Magento local configuration and secrets
+/app/etc/env.php
+/auth.json
+/var/composer_home/auth.json
+/.env
+.env.*
+!.env.example
+
+# Magento runtime, generated, cache, and build output
+/generated/*
+!/generated/.htaccess
+/var/*
+!/var/.htaccess
+/pub/static/*
+!/pub/static/.htaccess
+/pub/media/*
+!/pub/media/.htaccess
+!/pub/media/*/.htaccess
+/pub/pwa/*
+!/pub/pwa/.htaccess
+
+# Dependencies
+/vendor/
+/node_modules/
+/pwa/node_modules/
+
+# PWA build and test output
+/pwa/dist/
+/pwa/.vite/
+/pwa/coverage/
+/pwa/storybook-dist/
+/pwa/test-results/
+/pwa/build-stats.json
+/pwa/merged-schema*.json
+/pwa/test-report.xml
+/pwa/test-results.json
+/pwa/template.generated.html
+
+# Logs and reports
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/report/
+
+# Local tools and IDE files
+/.idea/
+/.vscode/
+/.junie/
+/.php-cs-fixer.cache
+.DS_Store
+Thumbs.db
+
+# Local backups, dumps, and deployment artifacts
+/*.sql
+/*.sql.gz
+/*.dump
+/*.bak
+/*.backup
+/.last_pwa_backup
+/pwa-vite-backup-*/
+/var/*.backup-*
+/generated/*.backup-*
