@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magic_ParentChildMapping::parentchild" title="Parent Child Mapping" sortOrder="70">
+                    <resource id="Magic_ParentChildMapping::index" title="List" sortOrder="10"/>
+                    <resource id="Magic_ParentChildMapping::save" title="Create / Edit" sortOrder="20"/>
+                    <resource id="Magic_ParentChildMapping::delete" title="Delete" sortOrder="30"/>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

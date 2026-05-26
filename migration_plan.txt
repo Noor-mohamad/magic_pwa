@@ -1,0 +1,318 @@
+================================================================================
+MAGENTO 2.4.2 → 2.4.8 + VENIA PWA MIGRATION PLAN
+================================================================================
+Date: 2026-05-26
+Old setup: /var/www/html/htdocs/uat-helios (Magento 2.4.2, Swissup Argento theme)
+New setup: /var/www/html/magic (Magento 2.4.8, Venia PWA at /pwa)
+Database:  uat_helios (already connected to new setup)
+================================================================================
+
+
+RECOMMENDATION: APPROACH 2 — Fresh 2.4.8 + Selective Module Migration
+------------------------------------------------------------------------
+
+Approach 1 (direct upgrade) is off the table because:
+- 40+ vendor namespaces, 130+ modules in app/code — many are competing
+  implementations of the same feature (e.g., two blog modules: Magefan +
+  Mageplaza, two store pickup modules: Helios + Magespacex)
+- Swissup Argento + Codazon theme suite — completely irrelevant in a
+  PWA/headless setup. These 15+ modules become dead weight and fight the upgrade
+- Manadev LayeredNavigation suite (16 modules) — built for LUMA/Argento theme,
+  needs full re-evaluation for GraphQL
+- Upgrading 130 modules across 6 version jumps simultaneously is extremely
+  high-risk, and most of what you'd carry over you don't even need
+
+The fresh 2.4.8 + uat_helios DB setup is the correct foundation.
+
+
+================================================================================
+PHASE 1: AUDIT & TRIAGE (Before touching any code)
+================================================================================
+
+1.1 — Categorize all modules into 3 buckets
+--------------------------------------------
+
+BUCKET A — DROP ENTIRELY (Not needed for PWA headless)
+  - Swissup theme (swissup/argento-m2, swissup/module-amp, swissup/module-easy-slide)
+  - Codazon/MegaMenu
+  - Codazon/ThemeLayoutPro
+  - Codazon/AjaxLayeredNavPro
+  - Codazon/QuickShop
+  - Codazon/ProductLabel
+  - Codazon/Lookbookpro
+  - Codazon/GoogleAmpManager
+  - Codazon/Core
+  - Amasty/PageSpeedOptimizer
+  - Amasty/PageSpeedOptimizerPro
+  - Amasty/PageSpeedTools
+  - Amasty/LazyLoad
+  - Amasty/LazyLoadUi
+  - Amasty/ImageOptimizer
+  - Amasty/ImageOptimizerSpeedSize
+  - Amasty/ImageOptimizerUi
+  - Magepow/SpeedOptimizer
+  - Magecomp/Webpimages
+  - Sparsh/Banner
+  - Sparsh/AjaxInfiniteScroll
+  - Magiccart/Shopbrand
+  - Manadev/LayeredNavigation (entire suite — 16 modules)
+  - yireo/magento2-webp2 (composer package)
+
+BUCKET B — EVALUATE (May have GraphQL support, check compatibility)
+  - Magefan/Blog + Magefan/BlogGraphQl
+  - MageWorx/SearchSuiteAutocomplete + SearchSuiteAutocompleteMeta
+  - Amasty/Rules
+  - Amasty/BannersLite
+  - Amasty/Rgrid
+  - Doofinder/Feed
+  - Firebear/ImportExport (admin tool — likely keep as-is)
+  - Flurrybox/EnhancedPrivacy (GDPR)
+  - KiwiCommerce/AdminActivity
+  - Mageplaza/Blog (duplicate of Magefan — pick one)
+  - Mageplaza/GoogleTagManager
+  - Mageplaza/SocialShare
+  - Codazon/SalesPro
+  - Codazon/ShippingCostCalculator
+  - Codazon/ProductFilter
+
+BUCKET C — MUST PORT (Core business logic unique to Helios)
+  - All Helios/* (34 modules)
+  - All Indglobal/* (17 modules)
+  - PayUIndia/Payu
+  - PayUM/Pumbolt
+  - Zoho/Salesiq
+  - Sms/Base + Sms/SMSProfile
+  - Pincode/CheckDelivery
+  - Otherfeature/* (evaluate each)
+
+1.2 — For each "Must port" module, document:
+  - What it does
+  - Whether it has frontend (Layout XML / JS / templates) or backend only
+  - Whether it needs a GraphQL resolver for PWA to use it
+
+
+================================================================================
+PHASE 2: THIRD-PARTY COMPOSER PACKAGES
+================================================================================
+
+2.1 — Drop from composer.json entirely:
+  - swissup/argento-m2
+  - swissup/module-amp
+  - swissup/module-easy-slide
+  - swissup/module-marketplace
+  - yireo/magento2-webp2
+  - elasticsearch/elasticsearch:^7.0 (replaced by OpenSearch — already done)
+
+2.2 — Re-evaluate:
+  - amasty/base — only keep if any Amasty modules survive audit
+  - aws/aws-sdk-php — keep if S3/Webkul/S3amazon is being used
+
+2.3 — Verify for 2.4.8:
+  - Ensure full magento/module-graph-ql suite is present
+  - Confirm all retained third-party packages have 2.4.8-compatible versions
+
+
+================================================================================
+PHASE 3: CUSTOM MODULE MIGRATION (Main work — one namespace at a time)
+================================================================================
+
+PRIORITY 1 — Payment (critical, must work before checkout testing)
+  - PayUIndia/Payu
+  - PayUM/Pumbolt
+  - Helios/Payment
+
+PRIORITY 2 — Core Helios Business Logic
+
+  Sub-group: Catalog / Product
+    - Helios/PriceDecimal
+    - Helios/PriceRender
+    - Helios/ProductAttrbute
+    - Helios/CustomCategory
+    - Helios/ChildParentView
+
+  Sub-group: Checkout / Cart
+    - Helios/Checkout
+    - Helios/Samedaydeliveryshipping
+    - Helios/Storepickup
+    - Pincode/CheckDelivery
+
+  Sub-group: Customer / Account
+    - Helios/Addresstype
+    - Helios/Wishlist
+    - Helios/Rsp
+    - Helios/Rspnew
+
+  Sub-group: Orders / Admin
+    - Helios/OrderGrid
+    - Helios/Ordersource
+    - Helios/Tracking
+    - Helios/Trackorder
+    - Helios/StockPriceImport
+
+  Sub-group: Marketing / SEO
+    - Helios/SeoSchema
+    - Helios/SeoTitle
+    - Helios/EmailTemplate
+    - Helios/NotifyMe
+    - Helios/GoogleTagManager
+
+  Sub-group: Utility
+    - Helios/Sortby
+    - Helios/Redirecturl
+    - Helios/Emioption
+    - Helios/GetAssistance
+    - Helios/CustomGiftwrap
+    - Helios/Helps
+    - Helios/CustomIndex
+    - Helios/CategoryAttributeChecked
+    - Helios/Command
+
+PRIORITY 3 — Indglobal Modules
+
+  Sub-group: Integrations
+    - Indglobal/VerloopOrderApi
+    - Indglobal/PayuWebhook
+    - Indglobal/WatchService
+
+  Sub-group: Admin / Reports
+    - Indglobal/DownloadReports
+    - Indglobal/OrderTracking
+    - Indglobal/CronScript
+
+  Sub-group: Catalog
+    - Indglobal/SilentOffer
+    - Indglobal/PriceCompare
+    - Indglobal/Sliderwithproducts
+    - Indglobal/OriginalImage
+
+  Sub-group: Store / SEO
+    - Indglobal/SitemapUrl
+    - Indglobal/Newsletterpopup
+    - Indglobal/CategoryMobileBanner
+
+  Sub-group: Other
+    - Indglobal/Corporate
+    - Indglobal/Luxe
+    - Indglobal/MissingTable
+
+PRIORITY 4 — External Integrations
+  - Zoho/Salesiq
+  - Sms/Base + Sms/SMSProfile
+  - Doofinder/Feed
+  - Otherfeature/Acart
+  - Otherfeature/Base
+  - Otherfeature/CronScheduleList
+  - Otherfeature/Feed
+  - Otherfeature/Geoip
+
+
+================================================================================
+PHASE 4: GRAPHQL LAYER (PWA-specific work)
+================================================================================
+
+For every module that exposes data the PWA frontend needs:
+  1. Check if the module already has etc/schema.graphqls + resolver
+  2. If not, write the GraphQL schema + resolver
+  3. Test via GraphQL Playground at http://magic.local/graphql
+
+Modules that will definitely need GraphQL resolvers:
+  - Helios/Checkout (custom shipping/delivery options)
+  - Helios/PriceRender / Helios/PriceDecimal (custom pricing display)
+  - Pincode/CheckDelivery (pincode availability check)
+  - Helios/NotifyMe (back-in-stock)
+  - Helios/Tracking / Helios/Trackorder
+  - Helios/Storepickup
+  - Helios/Wishlist (if extending default)
+
+
+================================================================================
+PHASE 5: PER-MODULE MIGRATION PROCESS (Repeat for each module)
+================================================================================
+
+For each module being ported:
+
+  Step 1: Copy module
+    From: /var/www/html/htdocs/uat-helios/app/code/Namespace/Module
+    To:   /var/www/html/magic/app/code/Namespace/Module
+
+  Step 2: Update registration.php if needed
+
+  Step 3: Check etc/module.xml dependencies
+    - Ensure all declared dependencies exist in 2.4.8
+
+  Step 4: Review PHP code for deprecated 2.4.2 patterns:
+    - Direct ObjectManager usage
+    - Deprecated API calls (check Magento 2.4.8 upgrade guide)
+    - Constructor injection changes
+    - Any removed interfaces or classes
+
+  Step 5: Remove frontend-only files (PWA replaces this UI)
+    - view/frontend/layout/
+    - view/frontend/templates/
+    - view/frontend/web/js/  (unless backend JS is needed)
+
+  Step 6: Run php bin/magento setup:upgrade
+  Step 7: Run php bin/magento setup:di:compile
+  Step 8: Verify no errors before moving to the next module
+
+
+================================================================================
+PHASE 6: PWA FRONTEND WIRING
+================================================================================
+
+As each backend module is migrated and its GraphQL layer is ready:
+  1. Add corresponding PWA component override in /var/www/html/magic/pwa/
+     (using the overrides pattern: overrides/@magento/venia-ui/lib/components/)
+  2. Wire up the GraphQL query/mutation in the PWA component
+  3. Test end-to-end: PWA → GraphQL → Magento module → DB
+
+
+================================================================================
+PHASE 7: FINAL QA CHECKLIST
+================================================================================
+
+  [ ] All Helios/* + Indglobal/* modules enabled and compiling clean
+  [ ] Payment flow (PayU) working end-to-end
+  [ ] Checkout with custom shipping/pincode check working
+  [ ] Product pages with custom attributes rendering correctly
+  [ ] Order management and tracking working in admin
+  [ ] SEO schema/title modules emitting correct output
+  [ ] All integrations (Zoho, SMS, Doofinder) firing correctly
+  [ ] setup:di:compile runs with zero errors
+  [ ] No deprecated class references
+  [ ] GraphQL queries returning correct data for all custom features
+  [ ] PWA components wired and tested for each custom module
+
+
+================================================================================
+SUGGESTED STARTING POINT
+================================================================================
+
+Audit the Helios/* modules one by one and for each answer:
+  (a) Does it touch the frontend at all?
+  (b) Does the PWA need a GraphQL resolver for it?
+
+That audit will define the exact scope of work before any code is copied.
+
+
+================================================================================
+ENVIRONMENT REFERENCE
+================================================================================
+
+Old Magento (2.4.2):  /var/www/html/htdocs/uat-helios
+New Magento (2.4.8):  /var/www/html/magic
+PWA (Venia):          /var/www/html/magic/pwa
+Database:             uat_helios
+Magento backend URL:  http://magic.local/
+OpenSearch:           localhost:9200 (version 2.19.2, cluster: ocluster1)
+
+Dev commands (PWA):
+  yarn install        — install deps
+  yarn watch          — dev server (port 8081)
+  yarn run build      — production build
+
+Overrides pattern:
+  Files go in: overrides/@magento/venia-ui/lib/components/<ComponentName>/
+  webpack.config.js must be updated with resolve.alias + NormalModuleReplacementPlugin
+
+================================================================================

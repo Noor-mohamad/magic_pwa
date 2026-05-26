@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">magic_parentchildmapping_grid.magic_parentchildmapping_grid_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="add">
+                <url path="*/*/add"/>
+                <class>primary</class>
+                <label translate="true">Add New Mapping</label>
+            </button>
+            <button name="import">
+                <url path="magic_parentchild/import/index"/>
+                <class>secondary</class>
+                <label translate="true">Import CSV</label>
+            </button>
+        </buttons>
+        <spinner>magic_parentchildmapping_grid_columns</spinner>
+        <deps>
+            <dep>magic_parentchildmapping_grid.magic_parentchildmapping_grid_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="magic_parentchildmapping_grid_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="magic_parentchildmapping_grid_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/tree-massactions">
+            <settings>
+                <selectionsProvider>magic_parentchildmapping_grid.magic_parentchildmapping_grid.magic_parentchildmapping_grid_columns.ids</selectionsProvider>
+            </settings>
+            <action name="delete">
+                <settings>
+                    <confirm>
+                        <message translate="true">Are you sure you want to delete selected items?</message>
+                        <title translate="true">Delete items</title>
+                    </confirm>
+                    <url path="magic_parentchild/index/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="magic_parentchildmapping_grid_columns">
+        <settings>
+            <editorConfig>
+                <param name="indexField" xsi:type="string">id</param>
+                <param name="enabled" xsi:type="boolean">false</param>
+            </editorConfig>
+        </settings>
+        <selectionsColumn name="ids">
+            <settings>
+                <indexField>id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="id">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>desc</sorting>
+            </settings>
+        </column>
+        <column name="parent_sku">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Parent SKU</label>
+            </settings>
+        </column>
+        <column name="child_sku">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Child SKU</label>
+            </settings>
+        </column>
+        <column name="special_price">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Special Price</label>
+            </settings>
+        </column>
+        <column name="from_date" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">From Date</label>
+            </settings>
+        </column>
+        <column name="to_date" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">To Date</label>
+            </settings>
+        </column>
+        <column name="update_price_flag">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Update Price Flag</label>
+            </settings>
+        </column>
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created At</label>
+            </settings>
+        </column>
+        <column name="updated_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Updated At</label>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Magic\ParentChildMapping\Ui\Component\Listing\Column\Actions">
+            <settings>
+                <indexField>id</indexField>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

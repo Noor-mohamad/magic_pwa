@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">magic_parentchildmapping_form.magic_parentchildmapping_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Mapping Information</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="Magic\ParentChildMapping\Block\Adminhtml\Edit\Buttons\Back"/>
+            <button name="delete" class="Magic\ParentChildMapping\Block\Adminhtml\Edit\Buttons\Delete"/>
+            <button name="save_and_continue" class="Magic\ParentChildMapping\Block\Adminhtml\Edit\Buttons\SaveAndContinue"/>
+            <button name="save" class="Magic\ParentChildMapping\Block\Adminhtml\Edit\Buttons\Save"/>
+        </buttons>
+        <namespace>magic_parentchildmapping_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>magic_parentchildmapping_form.magic_parentchildmapping_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="magic_parentchildmapping_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="magic_parentchild/index/save"/>
+        </settings>
+        <dataProvider class="Magic\ParentChildMapping\Model\ParentChildDataProvider" name="magic_parentchildmapping_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Mapping Details</label>
+        </settings>
+        <field name="id" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <visible>false</visible>
+                <dataScope>id</dataScope>
+            </settings>
+        </field>
+        <field name="parent_sku" formElement="input">
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Parent SKU</label>
+                <dataScope>parent_sku</dataScope>
+            </settings>
+        </field>
+        <field name="child_sku" formElement="input">
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Child SKU</label>
+                <dataScope>child_sku</dataScope>
+            </settings>
+        </field>
+        <field name="special_price" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Special Price</label>
+                <dataScope>special_price</dataScope>
+            </settings>
+        </field>
+        <field name="from_date" formElement="date">
+            <settings>
+                <dataType>date</dataType>
+                <label translate="true">From Date</label>
+                <dataScope>from_date</dataScope>
+            </settings>
+        </field>
+        <field name="to_date" formElement="date">
+            <settings>
+                <dataType>date</dataType>
+                <label translate="true">To Date</label>
+                <dataScope>to_date</dataScope>
+            </settings>
+        </field>
+        <field name="update_price_flag" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Update Price Flag</label>
+                <dataScope>update_price_flag</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+</form>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Magic_ParentChildMapping::magic_root"
+             title="Magic"
+             module="Magic_ParentChildMapping"
+             sortOrder="75"
+             resource="Magic_ParentChildMapping::parentchild"/>
+        <add id="Magic_ParentChildMapping::parentchild"
+             title="Parent Child Mapping"
+             module="Magic_ParentChildMapping"
+             sortOrder="10"
+             parent="Magic_ParentChildMapping::magic_root"
+             action="magic_parentchild/index/index"
+             resource="Magic_ParentChildMapping::index"/>
+    </menu>
+</config>

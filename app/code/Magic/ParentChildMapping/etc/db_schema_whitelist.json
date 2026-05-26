@@ -1,0 +1,22 @@
+{
+    "childsku_mapping": {
+        "column": {
+            "id": true,
+            "parent_sku": true,
+            "child_sku": true,
+            "special_price": true,
+            "from_date": true,
+            "to_date": true,
+            "update_price_flag": true,
+            "created_at": true,
+            "updated_at": true,
+            "flag_special_price": true,
+            "flag_from_date": true,
+            "flag_to_date": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "CHILDSKU_MAPPING_PARENT_SKU_CHILD_SKU": true
+        }
+    }
+}
