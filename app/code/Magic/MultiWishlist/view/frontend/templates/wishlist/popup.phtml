@@ -1,0 +1,105 @@
+<?php
+/** @var \Magic\MultiWishlist\Block\Wishlist\Popup $block */
+if (!$block->isLoggedIn()): ?>
+<?php return; /* Popup is only for logged-in customers */ endif; ?>
+
+<!-- Multi-Wishlist Popup Modal -->
+<div id="mwl-popup" class="mwl-popup-overlay" data-bind="css: {active: isOpen}">
+    <div class="mwl-popup-modal" role="dialog" aria-modal="true" aria-label="<?= $block->escapeHtmlAttr(__('Add to Wishlist')) ?>">
+
+        <!-- Header -->
+        <div class="mwl-popup-header">
+            <h3 class="mwl-popup-title">
+                <?= $block->escapeHtml(__('Add to Wishlist')) ?>
+                <!-- ko if: productName() -->
+                <span class="mwl-popup-product-name" data-bind="text: ': ' + productName()"></span>
+                <!-- /ko -->
+            </h3>
+            <button type="button" class="mwl-popup-close" data-bind="click: close" aria-label="<?= $block->escapeHtmlAttr(__('Close')) ?>">
+                &times;
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="mwl-popup-body">
+
+            <!-- Status message -->
+            <div class="mwl-popup-msg"
+                 data-bind="visible: msg() !== '', css: {'mwl-msg-success': msgType() === 'success', 'mwl-msg-error': msgType() === 'error'}">
+                <span data-bind="text: msg"></span>
+            </div>
+
+            <!-- Loading indicator -->
+            <div class="mwl-popup-loading" data-bind="visible: isLoading">
+                <?= $block->escapeHtml(__('Please wait...')) ?>
+            </div>
+
+            <!-- Product search (to change which product is being added) -->
+            <div class="mwl-popup-search">
+                <label class="mwl-popup-section-label"><?= $block->escapeHtml(__('Search product (optional):')) ?></label>
+                <input type="text"
+                       class="input-text mwl-search-input"
+                       data-bind="value: searchQ, valueUpdate: 'input'"
+                       placeholder="<?= $block->escapeHtmlAttr(__('Search by name or SKU...')) ?>" />
+                <ul class="mwl-search-results" data-bind="foreach: searchResults, visible: searchResults().length > 0">
+                    <li class="mwl-search-result-item" data-bind="click: $parent.selectProduct">
+                        <img data-bind="attr: {src: image, alt: name}" width="40" height="40" />
+                        <span class="mwl-result-name" data-bind="text: name"></span>
+                        <small class="mwl-result-sku" data-bind="text: sku"></small>
+                        <small class="mwl-result-price" data-bind="html: price"></small>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Wishlist list -->
+            <div class="mwl-popup-wishlists">
+                <p class="mwl-popup-section-label"><?= $block->escapeHtml(__('Choose a wishlist:')) ?></p>
+                <!-- ko if: wishlists().length === 0 -->
+                <p class="mwl-popup-empty"><?= $block->escapeHtml(__('No wishlists found. Create one below.')) ?></p>
+                <!-- /ko -->
+                <ul class="mwl-wishlist-options" data-bind="foreach: wishlists">
+                    <li class="mwl-wishlist-option" data-bind="click: function() { $parent.addToWishlist(wishlist_id); }">
+                        <span class="mwl-option-name" data-bind="text: wishlist_name"></span>
+                        <!-- ko if: is_default -->
+                        <span class="mwl-option-badge"><?= $block->escapeHtml(__('Default')) ?></span>
+                        <!-- /ko -->
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Create new wishlist -->
+            <div class="mwl-popup-create">
+                <button type="button"
+                        class="action mwl-toggle-create"
+                        data-bind="click: toggleCreate, text: showCreate() ? '<?= $block->escapeJs(__('Cancel')) ?>' : '<?= $block->escapeJs(__('+ Create New Wishlist')) ?>'">
+                </button>
+                <div class="mwl-create-form" data-bind="visible: showCreate">
+                    <input type="text"
+                           class="input-text mwl-new-name-input"
+                           data-bind="value: newName, valueUpdate: 'input'"
+                           placeholder="<?= $block->escapeHtmlAttr(__('Wishlist name...')) ?>"
+                           maxlength="255" />
+                    <button type="button"
+                            class="action primary"
+                            data-bind="click: createAndAdd, enable: newName().trim() !== '' && !isLoading()">
+                        <?= $block->escapeHtml(__('Create & Add')) ?>
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /.mwl-popup-body -->
+    </div><!-- /.mwl-popup-modal -->
+</div><!-- /#mwl-popup -->
+
+<script type="text/x-magento-init">
+{
+    "*": {
+        "Magic_MultiWishlist/js/wishlist-popup": {
+            "wishlists":   <?= /* @noEscape */ $block->getWishlistsJson() ?>,
+            "addItemUrl":  "<?= $block->escapeUrl($block->getAddItemUrl()) ?>",
+            "createUrl":   "<?= $block->escapeUrl($block->getCreateUrl()) ?>",
+            "searchUrl":   "<?= $block->escapeUrl($block->getSearchUrl()) ?>"
+        }
+    }
+}
+</script>

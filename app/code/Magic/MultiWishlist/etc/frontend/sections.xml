@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Customer:etc/sections.xsd">
+    <!-- Invalidate cart customer-data after adding wishlist items to cart -->
+    <action name="multiwishlist/index/addtocart">
+        <section name="cart"/>
+    </action>
+    <action name="multiwishlist/index/addalltocart">
+        <section name="cart"/>
+    </action>
+</config>

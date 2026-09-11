@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--
+        Intercept the core "Add to Wishlist" controller so non-JS requests are
+        directed to the customer's default multi-wishlist. JS requests are
+        handled client-side by wishlist-popup.js before reaching this plugin.
+    -->
+    <type name="Magento\Wishlist\Controller\Index\Add">
+        <plugin name="magic_multiwishlist_intercept_add"
+                type="Magic\MultiWishlist\Plugin\AddToWishlistPlugin"
+                sortOrder="1"/>
+    </type>
+</config>

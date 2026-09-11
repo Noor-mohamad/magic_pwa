@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd"
+      layout="2columns-left">
+    <update handle="customer_account"/>
+    <head>
+        <css src="Magic_MultiWishlist::css/multiwishlist.css"/>
+    </head>
+    <body>
+        <referenceContainer name="content">
+            <block class="Magic\MultiWishlist\Block\Wishlist\Index"
+                   name="multiwishlist.index"
+                   template="Magic_MultiWishlist::wishlist/index.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

@@ -1,0 +1,21 @@
+{
+    "name": "magic/module-multi-wishlist",
+    "description": "Multiple Wishlist module for Magento 2",
+    "type": "magento2-module",
+    "version": "1.0.0",
+    "require": {
+        "php": ">=8.1.0",
+        "magento/framework": "*",
+        "magento/module-customer": "*",
+        "magento/module-catalog": "*",
+        "magento/module-store": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magic\\MultiWishlist\\": ""
+        }
+    }
+}

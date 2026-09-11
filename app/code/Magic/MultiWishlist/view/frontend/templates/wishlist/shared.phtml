@@ -1,0 +1,55 @@
+<?php
+/** @var \Magic\MultiWishlist\Block\Wishlist\Shared $block */
+$wishlist = $block->getWishlist();
+$items    = $block->getItems();
+?>
+<div class="multiwishlist-shared">
+    <?php if (!$wishlist): ?>
+        <p class="empty"><?= $block->escapeHtml(__('This shared wishlist is no longer available.')) ?></p>
+    <?php else: ?>
+
+        <h2 class="mwl-shared-title">
+            <?= $block->escapeHtml(__('Shared Wishlist: %1', $wishlist->getWishlistName())) ?>
+        </h2>
+
+        <?php if (empty($items)): ?>
+            <p class="empty"><?= $block->escapeHtml(__('This wishlist has no items.')) ?></p>
+        <?php else: ?>
+            <table class="data table multiwishlist-items">
+                <thead>
+                    <tr>
+                        <th class="col image"></th>
+                        <th class="col product"><?= $block->escapeHtml(__('Product')) ?></th>
+                        <th class="col price"><?= $block->escapeHtml(__('Price')) ?></th>
+                        <th class="col qty"><?= $block->escapeHtml(__('Qty')) ?></th>
+                        <th class="col comment"><?= $block->escapeHtml(__('Note')) ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($items as $row): ?>
+                        <?php $product = $row['product']; ?>
+                        <tr>
+                            <td class="col image">
+                                <a href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                                    <img src="<?= $block->escapeUrl($row['image']) ?>"
+                                         alt="<?= $block->escapeHtmlAttr($product->getName()) ?>"
+                                         width="60" />
+                                </a>
+                            </td>
+                            <td class="col product">
+                                <a href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                                    <?= $block->escapeHtml($product->getName()) ?>
+                                </a>
+                                <br><small><?= $block->escapeHtml($product->getSku()) ?></small>
+                            </td>
+                            <td class="col price"><?= /* @noEscape */ $row['price'] ?></td>
+                            <td class="col qty"><?= (float) $row['qty'] ?></td>
+                            <td class="col comment"><?= $block->escapeHtml($row['comment']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+
+    <?php endif; ?>
+</div>

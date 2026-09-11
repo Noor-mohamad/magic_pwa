@@ -1,0 +1,188 @@
+<?php
+/** @var \Magic\MultiWishlist\Block\Wishlist\View $block */
+$wishlist       = $block->getWishlist();
+$items          = $block->getItems();
+$otherWishlists = $block->getOtherWishlists();
+$hasOthers      = count($otherWishlists) > 0;
+?>
+<div id="mwl-view-wrapper" class="multiwishlist-view">
+    <p class="mwl-back">
+        <a href="<?= $block->escapeUrl($block->getBackUrl()) ?>">
+            &laquo; <?= $block->escapeHtml(__('Back to My Wishlists')) ?>
+        </a>
+    </p>
+
+    <?php if (!empty($items)): ?>
+    <!-- Bulk actions toolbar -->
+    <div class="mwl-bulk-toolbar">
+        <a href="<?= $block->escapeUrl($block->getAddAllToCartUrl()) ?>" class="action primary">
+            <?= $block->escapeHtml(__('Add All to Cart')) ?>
+        </a>
+        <a href="<?= $block->escapeUrl($block->getShareUrl()) ?>" class="action">
+            <?= $block->escapeHtml(__('Share Wishlist')) ?>
+        </a>
+
+        <?php if ($hasOthers): ?>
+        <span class="mwl-bulk-move">
+            <select id="mwl-move-all-select">
+                <option value=""><?= $block->escapeHtml(__('Move All to...')) ?></option>
+                <?php foreach ($otherWishlists as $wl): ?>
+                <option value="<?= (int) $wl->getId() ?>">
+                    <?= $block->escapeHtml($wl->getWishlistName()) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" id="mwl-move-all-btn" class="action">
+                <?= $block->escapeHtml(__('Move All')) ?>
+            </button>
+        </span>
+
+        <span class="mwl-bulk-copy">
+            <select id="mwl-copy-all-select">
+                <option value=""><?= $block->escapeHtml(__('Copy All to...')) ?></option>
+                <?php foreach ($otherWishlists as $wl): ?>
+                <option value="<?= (int) $wl->getId() ?>">
+                    <?= $block->escapeHtml($wl->getWishlistName()) ?>
+                </option>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" id="mwl-copy-all-btn" class="action">
+                <?= $block->escapeHtml(__('Copy All')) ?>
+            </button>
+        </span>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if (empty($items)): ?>
+        <p class="empty"><?= $block->escapeHtml(__('This wishlist has no items yet.')) ?></p>
+    <?php else: ?>
+        <table class="data table multiwishlist-items">
+            <thead>
+                <tr>
+                    <th class="col image"></th>
+                    <th class="col product"><?= $block->escapeHtml(__('Product')) ?></th>
+                    <th class="col price"><?= $block->escapeHtml(__('Price')) ?></th>
+                    <th class="col qty"><?= $block->escapeHtml(__('Qty')) ?></th>
+                    <th class="col comment"><?= $block->escapeHtml(__('Comment')) ?></th>
+                    <th class="col actions"><?= $block->escapeHtml(__('Actions')) ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($items as $row): ?>
+                    <?php $item = $row['item']; $product = $row['product']; ?>
+                    <tr class="mwl-item-row" data-item-id="<?= (int) $item->getId() ?>">
+                        <td class="col image">
+                            <a href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                                <img src="<?= $block->escapeUrl($row['image']) ?>"
+                                     alt="<?= $block->escapeHtmlAttr($product->getName()) ?>"
+                                     width="60" />
+                            </a>
+                        </td>
+                        <td class="col product">
+                            <a href="<?= $block->escapeUrl($product->getProductUrl()) ?>">
+                                <?= $block->escapeHtml($product->getName()) ?>
+                            </a>
+                            <br><small><?= $block->escapeHtml($product->getSku()) ?></small>
+                        </td>
+                        <td class="col price"><?= /* @noEscape */ $row['price'] ?></td>
+                        <td class="col qty">
+                            <span class="mwl-display mwl-qty-display">
+                                <?= (float) ($item->getQty() ?: 1) ?>
+                            </span>
+                            <input class="mwl-edit-field mwl-qty-input input-text"
+                                   type="number" min="0.01" step="0.01"
+                                   value="<?= (float) ($item->getQty() ?: 1) ?>"
+                                   style="display:none" />
+                        </td>
+                        <td class="col comment">
+                            <span class="mwl-display mwl-comment-display">
+                                <?= $block->escapeHtml((string) $item->getComment()) ?>
+                            </span>
+                            <textarea class="mwl-edit-field mwl-comment-input"
+                                      rows="2"
+                                      style="display:none"><?= $block->escapeHtml((string) $item->getComment()) ?></textarea>
+                        </td>
+                        <td class="col actions">
+                            <!-- Normal mode -->
+                            <div class="mwl-normal-actions">
+                                <a href="<?= $block->escapeUrl($block->getAddToCartUrl((int) $item->getId())) ?>"
+                                   class="action primary mwl-add-to-cart">
+                                    <?= $block->escapeHtml(__('Add to Cart')) ?>
+                                </a>
+                                <a href="#" class="mwl-edit-toggle">
+                                    <?= $block->escapeHtml(__('Edit')) ?>
+                                </a>
+                                <a href="<?= $block->escapeUrl($block->getRemoveItemUrl((int) $item->getId())) ?>"
+                                   onclick="return confirm('<?= $block->escapeJs(__('Remove this item from the wishlist?')) ?>')">
+                                    <?= $block->escapeHtml(__('Remove')) ?>
+                                </a>
+
+                                <?php if ($hasOthers): ?>
+                                <div class="mwl-item-move">
+                                    <select class="mwl-move-select">
+                                        <option value=""><?= $block->escapeHtml(__('Move to...')) ?></option>
+                                        <?php foreach ($otherWishlists as $wl): ?>
+                                        <option value="<?= (int) $wl->getId() ?>">
+                                            <?= $block->escapeHtml($wl->getWishlistName()) ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button"
+                                            class="action mwl-move-btn"
+                                            data-item-id="<?= (int) $item->getId() ?>">
+                                        <?= $block->escapeHtml(__('Move')) ?>
+                                    </button>
+                                </div>
+                                <div class="mwl-item-copy">
+                                    <select class="mwl-copy-select">
+                                        <option value=""><?= $block->escapeHtml(__('Copy to...')) ?></option>
+                                        <?php foreach ($otherWishlists as $wl): ?>
+                                        <option value="<?= (int) $wl->getId() ?>">
+                                            <?= $block->escapeHtml($wl->getWishlistName()) ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button"
+                                            class="action mwl-copy-btn"
+                                            data-item-id="<?= (int) $item->getId() ?>">
+                                        <?= $block->escapeHtml(__('Copy')) ?>
+                                    </button>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Edit mode (hidden by default) -->
+                            <div class="mwl-edit-actions" style="display:none">
+                                <button type="button" class="action primary mwl-save-edit">
+                                    <?= $block->escapeHtml(__('Save')) ?>
+                                </button>
+                                <button type="button" class="action mwl-cancel-edit">
+                                    <?= $block->escapeHtml(__('Cancel')) ?>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</div>
+
+<?php if ($wishlist): ?>
+<script type="text/x-magento-init">
+{
+    "#mwl-view-wrapper": {
+        "Magic_MultiWishlist/js/wishlist-actions": {
+            "wishlistId":    <?= (int) $wishlist->getId() ?>,
+            "indexUrl":      "<?= $block->escapeUrl($block->getBackUrl()) ?>",
+            "moveItemUrl":   "<?= $block->escapeUrl($block->getMoveItemBaseUrl()) ?>",
+            "copyItemUrl":   "<?= $block->escapeUrl($block->getCopyItemBaseUrl()) ?>",
+            "moveAllUrl":    "<?= $block->escapeUrl($block->getMoveAllUrl()) ?>",
+            "copyAllUrl":    "<?= $block->escapeUrl($block->getCopyAllUrl()) ?>",
+            "updateItemUrl": "<?= $block->escapeUrl($block->getUpdateItemBaseUrl()) ?>"
+        }
+    }
+}
+</script>
+<?php endif; ?>

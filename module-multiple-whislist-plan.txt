@@ -1,0 +1,377 @@
+================================================================================
+  MAGIC - MULTIPLE WISHLIST MODULE PLAN
+  Module: Magic_MultiWishlist
+  Created: 2026-06-08
+================================================================================
+
+PHASE STATUS LEGEND:
+  [ ] = Pending
+  [~] = In Progress
+  [x] = Done
+
+--------------------------------------------------------------------------------
+OVERALL PROGRESS:
+  Phase 1 — Foundation (skeleton + DB)         [x] Done
+  Phase 2 — Core Wishlist CRUD                 [x] Done
+  Phase 3 — Item Management                    [x] Done
+  Phase 4 — Popup + Product Search             [x] Done
+  Phase 5 — Sharing                            [x] Done
+  Phase 6 — Price Alerts                       [ ] Pending
+--------------------------------------------------------------------------------
+
+
+================================================================================
+ARCHITECTURE DECISION
+================================================================================
+
+The core Magento_Wishlist has a UNIQUE constraint on customer_id (one wishlist
+per customer). We do NOT touch the core module. We build a fully standalone
+module with our own tables, and intercept the core "Add to Wishlist" button
+via a Plugin.
+
+
+================================================================================
+DATABASE SCHEMA (3 new tables)
+================================================================================
+
+TABLE: magic_wishlist
+  - wishlist_id     int PK (auto-increment)
+  - customer_id     int FK → customer_entity
+  - wishlist_name   varchar(255)
+  - is_default      tinyint  (1 = default list)
+  - shared          smallint (0/1 sharing flag)
+  - sharing_code    varchar(32) (encrypted share token)
+  - created_at      timestamp
+  - updated_at      timestamp
+
+TABLE: magic_wishlist_item
+  - item_id         int PK (auto-increment)
+  - wishlist_id     int FK → magic_wishlist
+  - product_id      int FK → catalog_product_entity
+  - store_id        smallint FK → store
+  - qty             decimal(12,4)
+  - comment         text (user note on product)
+  - added_at        timestamp
+
+TABLE: magic_wishlist_price_alert
+  - alert_id        int PK (auto-increment)
+  - customer_id     int FK → customer_entity
+  - product_id      int FK → catalog_product_entity
+  - wishlist_id     int FK → magic_wishlist
+  - price_at_add    decimal(12,4) (price when item was added)
+  - last_sent_at    timestamp (last alert email sent)
+  - is_active       tinyint (1 = alert enabled)
+
+
+================================================================================
+MODULE FILE STRUCTURE
+================================================================================
+
+app/code/Magic/MultiWishlist/
+├── registration.php
+├── composer.json
+├── etc/
+│   ├── module.xml                      (depends: Magento_Customer, Magento_Catalog, Magento_Email)
+  Module name: Magic_MultiWishlist
+│   ├── db_schema.xml                   (3 tables)
+│   ├── db_schema_whitelist.json
+│   ├── config.xml                      (default config values)
+│   ├── email_templates.xml             (price alert email template)
+│   ├── crontab.xml                     (price alert cron)
+│   ├── di.xml
+│   └── frontend/
+│       ├── routes.xml                  (frontName: multiwishlist)
+│       ├── events.xml
+│       └── sections.xml                (customer-data invalidation)
+│
+├── Model/
+│   ├── Wishlist.php
+│   ├── WishlistItem.php
+│   ├── PriceAlert.php
+│   └── ResourceModel/
+│       ├── Wishlist.php
+│       ├── Wishlist/Collection.php
+│       ├── WishlistItem.php
+│       ├── WishlistItem/Collection.php
+│       ├── PriceAlert.php
+│       └── PriceAlert/Collection.php
+│
+├── Controller/Frontend/
+│   ├── Index.php           — list all wishlists for logged-in customer
+│   ├── Create.php          — create new wishlist (AJAX + form)
+│   ├── Delete.php          — delete entire wishlist
+│   ├── View.php            — view single wishlist items
+│   ├── AddItem.php         — add product to a wishlist (from popup)
+│   ├── RemoveItem.php      — remove one item
+│   ├── UpdateItem.php      — update comment / qty
+│   ├── MoveItem.php        — move single item to another wishlist
+│   ├── CopyItem.php        — copy single item to another wishlist
+│   ├── MoveAll.php         — move ALL items from one wishlist to another
+│   ├── CopyAll.php         — copy ALL items from one wishlist to another
+│   ├── AddToCart.php       — add single wishlist item to cart
+│   ├── AddAllToCart.php    — add all items of a wishlist to cart
+│   ├── Share.php           — share by email
+│   └── Search.php          — AJAX product search (SKU / name)
+│
+├── Block/
+│   ├── Wishlist/
+│   │   ├── Index.php       — list page block
+│   │   ├── View.php        — single wishlist view block
+│   │   └── Popup.php       — popup block (wishlist selector + search)
+│   └── Account/
+│       └── Navigation.php  — sidebar nav link injection
+│
+├── Helper/
+│   └── Data.php            — config flags, share URL builder (FB/Twitter)
+│
+├── Observer/
+│   ├── CustomerLogin.php       — auto-create default wishlist on first login
+│   └── ProductSaveAfter.php    — detect price change → queue alerts
+│
+├── Plugin/
+│   └── AddToWishlistPlugin.php — intercept core Magento_Wishlist Add controller
+│                                  to show our popup instead
+│
+├── Cron/
+│   └── SendPriceAlerts.php     — compare stored price vs current, send email
+│
+├── view/frontend/
+│   ├── layout/
+│   │   ├── multiwishlist_index_index.xml
+│   │   ├── multiwishlist_index_view.xml
+│   │   ├── catalog_product_view.xml     — inject popup trigger JS
+│   │   ├── catalog_category_view.xml    — inject popup trigger on listing
+│   │   └── customer_account.xml         — add "My Wishlists" nav link
+│   ├── templates/
+│   │   ├── wishlist/
+│   │   │   ├── index.phtml    — grid of wishlists (name, item count, actions)
+│   │   │   ├── view.phtml     — items table with copy/move/delete/add-to-cart
+│   │   │   ├── popup.phtml    — popup: search box + wishlist selector + create new
+│   │   │   └── share.phtml    — share form (email + social buttons)
+│   │   └── email/
+│   │       └── price_alert.phtml
+│   └── web/
+│       ├── js/
+│       │   ├── wishlist-popup.js      — Knockout component for popup
+│       │   └── wishlist-actions.js    — copy/move/bulk actions
+│       └── css/
+│           └── multiwishlist.css
+│
+└── i18n/en_US.csv
+
+
+================================================================================
+FEATURES CHECKLIST
+================================================================================
+
+  [ ] Create and manage multiple wishlists
+  [ ] Create a new wishlist / use existing wishlist
+  [ ] Add multiple products to multiple wishlists
+  [ ] Quick product search by SKU or product name
+  [ ] Logged-in user can create multiple wishlists
+  [ ] User-friendly popup when adding product to wishlist
+  [ ] Add multiple products to a wishlist
+  [ ] Move all products from one wishlist to another (Move All)
+  [ ] Copy all products of one wishlist to another (Copy All)
+  [ ] Delete the complete wishlist
+  [ ] Remove selected items from wishlist
+  [ ] Share wishlist by Email
+  [ ] Share wishlist via Facebook
+  [ ] Share wishlist via Twitter
+  [ ] Customers notified about product price changes in their wishlist
+  [ ] Manage wishlist items: copy, move, delete, add to cart
+  [ ] Send automatic price alerts (motivate to buy)
+  [ ] Users can write comments/notes on any product
+
+
+================================================================================
+PHASE 1 — FOUNDATION (Skeleton + DB + Models)
+================================================================================
+STATUS: [x] DONE
+Last Updated: 2026-06-08
+
+Files to create:
+  [x] registration.php
+  [x] composer.json
+  [x] etc/module.xml
+  [x] etc/db_schema.xml                (all 3 tables)
+  [x] etc/db_schema_whitelist.json
+  [x] etc/events.xml
+  [x] Model/Wishlist.php
+  [x] Model/WishlistItem.php
+  [x] Model/PriceAlert.php
+  [x] Model/ResourceModel/Wishlist.php
+  [x] Model/ResourceModel/Wishlist/Collection.php
+  [x] Model/ResourceModel/WishlistItem.php
+  [x] Model/ResourceModel/WishlistItem/Collection.php
+  [x] Model/ResourceModel/PriceAlert.php
+  [x] Model/ResourceModel/PriceAlert/Collection.php
+  [x] Observer/CustomerLogin.php       (auto-create default wishlist on first login)
+
+Run after this phase:
+  php bin/magento setup:upgrade
+  php bin/magento setup:di:compile
+  php bin/magento cache:flush
+
+
+================================================================================
+PHASE 2 — CORE WISHLIST CRUD
+================================================================================
+STATUS: [x] DONE
+Last Updated: 2026-06-08
+
+Files to create:
+  [x] etc/frontend/routes.xml               (done in Phase 1)
+  [x] etc/di.xml                            (placeholder; plugin added in Phase 4)
+  [x] Controller/Frontend/AbstractAction.php (auth guard base class)
+  [x] Controller/Frontend/Index.php
+  [x] Controller/Frontend/Create.php
+  [x] Controller/Frontend/Delete.php
+  [x] Controller/Frontend/View.php
+  [x] Block/Wishlist/Index.php
+  [x] Block/Wishlist/View.php
+  [x] view/frontend/layout/multiwishlist_index_index.xml
+  [x] view/frontend/layout/multiwishlist_index_view.xml
+  [x] view/frontend/layout/customer_account.xml
+  [x] view/frontend/templates/wishlist/index.phtml
+  [x] view/frontend/templates/wishlist/view.phtml
+  [x] i18n/en_US.csv
+  Note: Block/Account/Navigation.php skipped — nav link injected via layout XML
+        using Magento\Framework\View\Element\Html\Link\Current (the Magento way)
+
+Run after this phase:
+  php bin/magento setup:di:compile
+  php bin/magento setup:static-content:deploy
+  php bin/magento cache:flush
+
+
+================================================================================
+PHASE 3 — ITEM MANAGEMENT
+================================================================================
+STATUS: [x] DONE
+Last Updated: 2026-06-08
+
+Files to create:
+  [x] Controller/Frontend/AddItem.php         (+ saves price_at_add alert record)
+  [x] Controller/Frontend/RemoveItem.php
+  [x] Controller/Frontend/UpdateItem.php      (comment + qty)
+  [x] Controller/Frontend/MoveItem.php
+  [x] Controller/Frontend/CopyItem.php
+  [x] Controller/Frontend/MoveAll.php         (skips duplicates in target)
+  [x] Controller/Frontend/CopyAll.php         (skips duplicates in target)
+  [x] Controller/Frontend/AddToCart.php       (uses Magento\Checkout\Model\Cart)
+  [x] Controller/Frontend/AddAllToCart.php    (counts added/failed, reports both)
+  [x] etc/frontend/sections.xml
+  [x] view/frontend/web/js/wishlist-actions.js (jQuery widget, x-magento-init)
+  [x] view/frontend/web/css/multiwishlist.css
+  [x] Block/Wishlist/View.php updated          (added getOtherWishlists + URL methods)
+  [x] view.phtml updated                       (bulk toolbar, inline edit, move/copy dropdowns)
+  [x] etc/module.xml updated                   (added Magento_Checkout sequence)
+
+Run after this phase:
+  php bin/magento setup:di:compile
+  php bin/magento setup:static-content:deploy
+  php bin/magento cache:flush
+
+
+================================================================================
+PHASE 4 — POPUP + PRODUCT SEARCH
+================================================================================
+STATUS: [x] DONE
+Last Updated: 2026-06-08
+
+Files to create:
+  [x] Controller/Frontend/Search.php          (AJAX: name/SKU LIKE filter, max 10 results)
+  [x] Block/Wishlist/Popup.php                (getWishlistsJson, additem/create/search URLs)
+  [x] Plugin/AddToWishlistPlugin.php          (aroundExecute → adds to default multi-wishlist)
+  [x] view/frontend/layout/catalog_product_view.xml
+  [x] view/frontend/layout/catalog_category_view.xml
+  [x] view/frontend/templates/wishlist/popup.phtml (KO data-bind, x-magento-init)
+  [x] view/frontend/web/js/wishlist-popup.js  (Knockout VM, intercepts .action.towishlist)
+  [x] etc/di.xml                              (plugin registration, sortOrder=1)
+  [x] multiwishlist.css updated               (popup overlay, modal, wishlists, search)
+
+Run after this phase:
+  php bin/magento setup:di:compile
+  php bin/magento setup:static-content:deploy
+  php bin/magento cache:flush
+
+
+================================================================================
+PHASE 5 — SHARING
+================================================================================
+STATUS: [x] DONE
+Last Updated: 2026-06-08
+
+ROUTING BUG FIX (also in this phase):
+  All controllers moved from Controller/Frontend/ → Controller/Index/
+  Namespaces updated via sed. URL references were already correct (multiwishlist/index/*).
+
+Files created:
+  [x] Helper/Data.php                       (getShareUrl, getFacebookShareUrl, getTwitterShareUrl)
+  [x] Controller/Index/Share.php            (GET renders form, POST sends email + marks shared=1)
+  [x] Controller/Index/Shared.php           (public GET, no auth, loads by sharing_code)
+  [x] Block/Wishlist/Share.php
+  [x] Block/Wishlist/Shared.php             (public view, read-only items)
+  [x] etc/email_templates.xml              (magic_multiwishlist_share template declared)
+  [x] view/frontend/email/wishlist_share.html
+  [x] view/frontend/layout/multiwishlist_index_share.xml
+  [x] view/frontend/layout/multiwishlist_index_shared.xml (1column, no customer_account handle)
+  [x] view/frontend/templates/wishlist/share.phtml (link copy, FB/Twitter buttons, email form)
+  [x] view/frontend/templates/wishlist/shared.phtml (read-only public view)
+  [x] Block/Wishlist/View.php updated       (added getShareUrl())
+  [x] view.phtml updated                    (added Share Wishlist button to toolbar)
+  [x] etc/module.xml updated                (added Magento_Email sequence)
+  [x] multiwishlist.css updated             (share page + social button styles)
+
+Run after this phase:
+  php bin/magento setup:di:compile
+  php bin/magento setup:static-content:deploy
+  php bin/magento cache:flush
+
+
+================================================================================
+PHASE 6 — PRICE ALERTS
+================================================================================
+STATUS: [ ] PENDING
+Last Updated: —
+
+Files to create:
+  [ ] Observer/ProductSaveAfter.php         (detect price change)
+  [ ] Cron/SendPriceAlerts.php              (compare price, send email)
+  [ ] etc/crontab.xml
+  [ ] etc/email_templates.xml
+  [ ] etc/config.xml                        (admin config defaults)
+  [ ] view/frontend/templates/email/price_alert.phtml
+  [ ] etc/frontend/events.xml
+
+Admin config path: Stores > Config > Magic > Multi Wishlist
+  - Enable Price Alerts (yes/no)
+  - Alert Email Sender
+  - Cron Schedule (default: daily)
+
+Run after this phase:
+  php bin/magento setup:upgrade
+  php bin/magento setup:di:compile
+  php bin/magento setup:static-content:deploy
+  php bin/magento cache:flush
+
+
+================================================================================
+KEY TECHNICAL NOTES
+================================================================================
+
+  Topic                   Decision
+  ─────────────────────   ────────────────────────────────────────────────────
+  Core wishlist conflict  Standalone tables — no core schema modification
+  Popup mechanism         Knockout.js component (standard Magento pattern)
+  Social share            Open-graph share URLs (no API keys needed)
+  Price alerts            Magento TransportBuilder + cron
+  Auth guard              All controllers extend AbstractAction + session check
+  AJAX responses          Magento\Framework\Controller\Result\Json
+  Admin config            Stores > Config > Magic > Multi Wishlist
+
+
+================================================================================
+END OF PLAN
+================================================================================

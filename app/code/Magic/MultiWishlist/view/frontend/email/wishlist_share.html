@@ -1,0 +1,47 @@
+<!--@subject {{trans "%name shared a wishlist with you: %wishlist_name" name=$customer_name wishlist_name=$wishlist_name}} @-->
+<!--@vars {
+"var customer_name": "Name of the customer sharing the wishlist",
+"var wishlist_name": "Name of the shared wishlist",
+"var share_url": "Public URL to view the shared wishlist",
+"var message": "Optional personal message from the sharer"
+} @-->
+
+{{template config_path="design/email/header_template"}}
+
+<table width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+        <td style="padding: 24px 30px;">
+
+            <p style="font-size:16px; margin-bottom:16px;">
+                {{trans "Hi,"}}
+            </p>
+
+            <p style="margin-bottom:16px;">
+                {{trans "<strong>%name</strong> has shared their wishlist <strong>&ldquo;%wishlist_name&rdquo;</strong> with you." name=$customer_name wishlist_name=$wishlist_name}}
+            </p>
+
+            {{depend message}}
+            <blockquote style="border-left:3px solid #ccc; margin:0 0 16px 0; padding:8px 16px; color:#555;">
+                {{var message}}
+            </blockquote>
+            {{/depend}}
+
+            <p style="margin-bottom:24px;">
+                <a href="{{var share_url}}"
+                   style="background:#1a73e8; color:#fff; padding:12px 24px; text-decoration:none;
+                          border-radius:4px; display:inline-block; font-weight:600;">
+                    {{trans "View Wishlist"}}
+                </a>
+            </p>
+
+            <p style="color:#888; font-size:12px;">
+                {{trans "Or copy this link into your browser:"}}
+                <br>
+                <a href="{{var share_url}}" style="color:#1a73e8; word-break:break-all;">{{var share_url}}</a>
+            </p>
+
+        </td>
+    </tr>
+</table>
+
+{{template config_path="design/email/footer_template"}}

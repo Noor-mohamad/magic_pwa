@@ -363,7 +363,7 @@ return [
         'Amasty_VisualMerch' => 1,
         'Amasty_VisualMerchCore' => 1,
         'Amasty_VisualMerchUi' => 1,
-        'Magic_ParentChildMapping' => 1,
+        'Magic_MultiWishlist' => 1,
         'Magic_PwaGraphQl' => 1,
         'PayPal_Braintree' => 1,
         'PayPal_BraintreeCustomerBalance' => 1,

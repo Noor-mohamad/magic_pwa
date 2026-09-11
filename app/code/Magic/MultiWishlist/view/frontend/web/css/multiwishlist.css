@@ -1,0 +1,505 @@
+/* ============================================================
+   Magic MultiWishlist — Frontend Styles
+   ============================================================ */
+
+/* --- Shared table styles --- */
+.multiwishlist-index .multiwishlist-table,
+.multiwishlist-view .multiwishlist-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.multiwishlist-index .multiwishlist-table th,
+.multiwishlist-index .multiwishlist-table td,
+.multiwishlist-view .multiwishlist-items th,
+.multiwishlist-view .multiwishlist-items td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+    text-align: left;
+}
+
+.multiwishlist-index .multiwishlist-table th,
+.multiwishlist-view .multiwishlist-items th {
+    background: #f5f5f5;
+    font-weight: 600;
+    font-size: 13px;
+    color: #555;
+}
+
+/* --- Index page toolbar --- */
+.multiwishlist-toolbar {
+    margin-bottom: 1.25rem;
+}
+
+/* --- Default wishlist badge --- */
+.multiwishlist-table .wishlist-default {
+    font-size: 11px;
+    color: #777;
+    margin-left: 6px;
+}
+
+/* --- Create wishlist inline form --- */
+#mwl-create-form {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#mwl-create-form label {
+    font-weight: 600;
+    margin-right: 6px;
+}
+
+/* --- View page bulk actions toolbar --- */
+.mwl-bulk-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+    padding: 10px 14px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.mwl-bulk-move,
+.mwl-bulk-copy {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* --- Item image column --- */
+.multiwishlist-items .col.image {
+    width: 70px;
+}
+
+.multiwishlist-items .col.image img {
+    display: block;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+}
+
+/* --- Normal actions cell --- */
+.mwl-normal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mwl-normal-actions a {
+    white-space: nowrap;
+}
+
+/* --- Move / Copy item dropdowns --- */
+.mwl-item-move,
+.mwl-item-copy {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.mwl-item-move select,
+.mwl-item-copy select,
+.mwl-bulk-move select,
+.mwl-bulk-copy select {
+    font-size: 12px;
+    padding: 3px 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    max-width: 140px;
+}
+
+.mwl-item-move button,
+.mwl-item-copy button {
+    font-size: 12px;
+    padding: 3px 8px;
+}
+
+/* --- Inline edit fields --- */
+.mwl-edit-field {
+    margin-top: 4px;
+}
+
+.mwl-qty-input {
+    width: 64px !important;
+}
+
+.mwl-comment-input {
+    width: 130px;
+    resize: vertical;
+}
+
+/* --- Edit mode action buttons --- */
+.mwl-edit-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* --- Back link --- */
+.multiwishlist-view .mwl-back {
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+/* ============================================================
+   Share Page (Phase 5)
+   ============================================================ */
+
+.multiwishlist-share h2,
+.multiwishlist-shared h2 {
+    margin-bottom: 1.5rem;
+}
+
+.mwl-share-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.mwl-share-section:last-child {
+    border-bottom: none;
+}
+
+.mwl-share-heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+}
+
+.mwl-share-link-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.mwl-share-link-row .input-text {
+    flex: 1;
+    font-size: 13px;
+    background: #f9f9f9;
+}
+
+/* Social share buttons */
+.mwl-social-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.mwl-social-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #fff;
+}
+
+.mwl-social-facebook {
+    background: #1877f2;
+}
+
+.mwl-social-facebook:hover {
+    background: #145fcc;
+}
+
+.mwl-social-twitter {
+    background: #000;
+}
+
+.mwl-social-twitter:hover {
+    background: #222;
+}
+
+/* Email share form */
+.mwl-share-form .field {
+    margin-bottom: 1rem;
+}
+
+.mwl-share-form .label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.mwl-field-note {
+    font-weight: 400;
+    font-size: 12px;
+    color: #888;
+    margin-left: 6px;
+}
+
+.mwl-share-form .input-text {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Shared (public) wishlist */
+.mwl-shared-title {
+    margin-bottom: 1.5rem;
+}
+
+/* ============================================================
+   Popup Modal (Phase 4)
+   ============================================================ */
+
+/* Prevent body scroll when popup is open */
+body.mwl-modal-open {
+    overflow: hidden;
+}
+
+/* Overlay */
+.mwl-popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.mwl-popup-overlay.active {
+    display: flex;
+}
+
+/* Modal box */
+.mwl-popup-modal {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    width: 460px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.mwl-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e5e5e5;
+    background: #f7f7f7;
+}
+
+.mwl-popup-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.mwl-popup-product-name {
+    font-weight: 400;
+    color: #555;
+    font-size: 14px;
+}
+
+.mwl-popup-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    color: #666;
+    padding: 0 4px;
+}
+
+.mwl-popup-close:hover {
+    color: #111;
+}
+
+/* Body (scrollable) */
+.mwl-popup-body {
+    padding: 16px 18px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Status messages */
+.mwl-popup-msg {
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.mwl-msg-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #a5d6a7;
+}
+
+.mwl-msg-error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef9a9a;
+}
+
+/* Loading */
+.mwl-popup-loading {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    padding: 6px 0 10px;
+}
+
+/* Section labels */
+.mwl-popup-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+
+/* Product search */
+.mwl-popup-search {
+    margin-bottom: 16px;
+}
+
+.mwl-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 6px;
+}
+
+.mwl-search-results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.mwl-search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.mwl-search-result-item:last-child {
+    border-bottom: none;
+}
+
+.mwl-search-result-item:hover {
+    background: #f5f5f5;
+}
+
+.mwl-search-result-item img {
+    flex-shrink: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    object-fit: cover;
+}
+
+.mwl-result-name {
+    flex: 1;
+    font-size: 13px;
+}
+
+.mwl-result-sku,
+.mwl-result-price {
+    font-size: 11px;
+    color: #888;
+}
+
+/* Wishlist list */
+.mwl-popup-wishlists {
+    margin-bottom: 16px;
+}
+
+.mwl-wishlist-options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.mwl-wishlist-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.12s;
+}
+
+.mwl-wishlist-option:last-child {
+    border-bottom: none;
+}
+
+.mwl-wishlist-option:hover {
+    background: #e8f0fe;
+}
+
+.mwl-option-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mwl-option-badge {
+    font-size: 10px;
+    color: #666;
+    background: #eee;
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.mwl-popup-empty {
+    color: #888;
+    font-size: 13px;
+    margin: 6px 0;
+}
+
+/* Create new wishlist */
+.mwl-popup-create {
+    border-top: 1px solid #eee;
+    padding-top: 14px;
+}
+
+.mwl-toggle-create {
+    font-size: 13px;
+    color: #1a73e8;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.mwl-create-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.mwl-new-name-input {
+    flex: 1;
+}

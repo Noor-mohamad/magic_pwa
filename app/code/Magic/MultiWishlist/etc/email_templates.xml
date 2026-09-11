@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Email:etc/email_templates.xsd">
+    <template id="magic_multiwishlist_share"
+              label="Magic MultiWishlist - Share Wishlist"
+              file="wishlist_share.html"
+              type="html"
+              module="Magic_MultiWishlist"
+              area="frontend"/>
+    <!-- Phase 6 will add magic_multiwishlist_price_alert here -->
+</config>

@@ -1,0 +1,80 @@
+<?php
+/** @var \Magic\MultiWishlist\Block\Wishlist\Index $block */
+$wishlists = $block->getWishlists();
+?>
+<div class="multiwishlist-index">
+    <div class="multiwishlist-toolbar" style="margin-bottom:1rem;">
+        <button type="button" class="action primary" id="mwl-create-btn">
+            <?= $block->escapeHtml(__('+ New Wishlist')) ?>
+        </button>
+    </div>
+
+    <div id="mwl-create-form" style="display:none; margin-bottom:1rem; padding:1rem; border:1px solid #e0e0e0;">
+        <form action="<?= $block->escapeUrl($block->getCreateUrl()) ?>" method="post">
+            <?= $block->getBlockHtml('formkey') ?>
+            <label for="wishlist_name"><?= $block->escapeHtml(__('Wishlist Name')) ?></label><br>
+            <input type="text" id="wishlist_name" name="wishlist_name" class="input-text"
+                   required maxlength="255" style="width:260px; margin-right:8px;" />
+            <button type="submit" class="action primary"><?= $block->escapeHtml(__('Save')) ?></button>
+            <button type="button" class="action" id="mwl-cancel-btn"><?= $block->escapeHtml(__('Cancel')) ?></button>
+        </form>
+    </div>
+
+    <?php if ($wishlists->getSize() === 0): ?>
+        <p class="empty"><?= $block->escapeHtml(__('You have no wishlists. Create one to get started.')) ?></p>
+    <?php else: ?>
+        <table class="data table multiwishlist-table">
+            <thead>
+                <tr>
+                    <th class="col name"><?= $block->escapeHtml(__('Wishlist Name')) ?></th>
+                    <th class="col items"><?= $block->escapeHtml(__('Items')) ?></th>
+                    <th class="col actions"><?= $block->escapeHtml(__('Actions')) ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($wishlists as $wishlist): ?>
+                    <tr>
+                        <td class="col name">
+                            <?= $block->escapeHtml($wishlist->getWishlistName()) ?>
+                            <?php if ($wishlist->getIsDefault()): ?>
+                                <span style="font-size:11px; color:#888; margin-left:6px;">
+                                    (<?= $block->escapeHtml(__('Default')) ?>)
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="col items">
+                            <?= (int) $block->getItemCount((int) $wishlist->getId()) ?>
+                        </td>
+                        <td class="col actions">
+                            <a href="<?= $block->escapeUrl($block->getViewUrl((int) $wishlist->getId())) ?>">
+                                <?= $block->escapeHtml(__('View')) ?>
+                            </a>
+                            <?php if (!$wishlist->getIsDefault()): ?>
+                                &nbsp;&nbsp;
+                                <a href="<?= $block->escapeUrl($block->getDeleteUrl((int) $wishlist->getId())) ?>"
+                                   onclick="return confirm('<?= $block->escapeJs(__('Delete this wishlist and all its items?')) ?>')">
+                                    <?= $block->escapeHtml(__('Delete')) ?>
+                                </a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</div>
+<script>
+    (function () {
+        var btn    = document.getElementById('mwl-create-btn');
+        var form   = document.getElementById('mwl-create-form');
+        var cancel = document.getElementById('mwl-cancel-btn');
+        btn.addEventListener('click', function () {
+            form.style.display = 'block';
+            btn.style.display  = 'none';
+        });
+        cancel.addEventListener('click', function () {
+            form.style.display = 'none';
+            btn.style.display  = '';
+        });
+    }());
+</script>

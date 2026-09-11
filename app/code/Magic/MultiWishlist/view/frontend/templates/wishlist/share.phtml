@@ -1,0 +1,105 @@
+<?php
+/** @var \Magic\MultiWishlist\Block\Wishlist\Share $block */
+$wishlist    = $block->getWishlist();
+$shareUrl    = $block->getPublicShareUrl();
+$fbUrl       = $block->getFacebookShareUrl();
+$twitterUrl  = $block->getTwitterShareUrl();
+?>
+<div class="multiwishlist-share">
+    <p style="margin-bottom:1rem;">
+        <a href="<?= $block->escapeUrl($block->getBackUrl()) ?>">
+            &laquo; <?= $block->escapeHtml(__('Back to Wishlist')) ?>
+        </a>
+    </p>
+
+    <?php if (!$wishlist): ?>
+        <p class="empty"><?= $block->escapeHtml(__('Wishlist not found.')) ?></p>
+    <?php else: ?>
+
+        <h2><?= $block->escapeHtml(__('Share "%1"', $wishlist->getWishlistName())) ?></h2>
+
+        <!-- ── Public link ─────────────────────────────────────── -->
+        <div class="mwl-share-section">
+            <h3 class="mwl-share-heading"><?= $block->escapeHtml(__('Shareable Link')) ?></h3>
+            <div class="mwl-share-link-row">
+                <input type="text"
+                       id="mwl-share-link"
+                       class="input-text"
+                       readonly
+                       value="<?= $block->escapeHtmlAttr($shareUrl) ?>"
+                       style="flex:1;" />
+                <button type="button"
+                        class="action"
+                        onclick="
+                            var el = document.getElementById('mwl-share-link');
+                            el.select(); el.setSelectionRange(0, 99999);
+                            document.execCommand('copy');
+                            this.textContent = '<?= $block->escapeJs(__('Copied!')) ?>';
+                            var btn = this;
+                            setTimeout(function(){ btn.textContent = '<?= $block->escapeJs(__('Copy')) ?>'; }, 2000);
+                        ">
+                    <?= $block->escapeHtml(__('Copy')) ?>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Social share ────────────────────────────────────── -->
+        <div class="mwl-share-section">
+            <h3 class="mwl-share-heading"><?= $block->escapeHtml(__('Share via')) ?></h3>
+            <div class="mwl-social-buttons">
+                <a href="<?= $block->escapeUrl($fbUrl) ?>"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="mwl-social-btn mwl-social-facebook">
+                    <?= $block->escapeHtml(__('Facebook')) ?>
+                </a>
+                <a href="<?= $block->escapeUrl($twitterUrl) ?>"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="mwl-social-btn mwl-social-twitter">
+                    <?= $block->escapeHtml(__('Twitter / X')) ?>
+                </a>
+            </div>
+        </div>
+
+        <!-- ── Share by email ───────────────────────────────────── -->
+        <div class="mwl-share-section">
+            <h3 class="mwl-share-heading"><?= $block->escapeHtml(__('Share by Email')) ?></h3>
+            <form action="<?= $block->escapeUrl($block->getShareFormAction()) ?>" method="post" class="mwl-share-form">
+                <?= $block->getBlockHtml('formkey') ?>
+
+                <div class="field">
+                    <label class="label" for="mwl-emails">
+                        <?= $block->escapeHtml(__('Email Addresses')) ?>
+                        <span class="mwl-field-note"><?= $block->escapeHtml(__('(one per line, or comma-separated)')) ?></span>
+                    </label>
+                    <textarea id="mwl-emails"
+                              name="emails"
+                              rows="4"
+                              class="input-text"
+                              required
+                              placeholder="friend@example.com&#10;another@example.com"></textarea>
+                </div>
+
+                <div class="field">
+                    <label class="label" for="mwl-message">
+                        <?= $block->escapeHtml(__('Personal Message')) ?>
+                        <span class="mwl-field-note"><?= $block->escapeHtml(__('(optional)')) ?></span>
+                    </label>
+                    <textarea id="mwl-message"
+                              name="message"
+                              rows="3"
+                              class="input-text"
+                              placeholder="<?= $block->escapeHtmlAttr(__('Check out my wishlist!')) ?>"></textarea>
+                </div>
+
+                <div class="actions-toolbar">
+                    <button type="submit" class="action primary">
+                        <?= $block->escapeHtml(__('Send Email')) ?>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    <?php endif; ?>
+</div>

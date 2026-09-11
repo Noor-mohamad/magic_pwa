@@ -1,0 +1,63 @@
+{
+    "magic_wishlist": {
+        "column": {
+            "wishlist_id": true,
+            "customer_id": true,
+            "wishlist_name": true,
+            "is_default": true,
+            "shared": true,
+            "sharing_code": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGIC_WISHLIST_CUSTOMER_ID_CUSTOMER_ENTITY_ENTITY_ID": true
+        },
+        "index": {
+            "MAGIC_WISHLIST_CUSTOMER_ID": true
+        }
+    },
+    "magic_wishlist_item": {
+        "column": {
+            "item_id": true,
+            "wishlist_id": true,
+            "product_id": true,
+            "store_id": true,
+            "qty": true,
+            "comment": true,
+            "added_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGIC_WISHLIST_ITEM_WISHLIST_ID_MAGIC_WISHLIST_WISHLIST_ID": true,
+            "MAGIC_WISHLIST_ITEM_PRODUCT_ID_CATALOG_PRODUCT_ENTITY_ENTITY_ID": true,
+            "MAGIC_WISHLIST_ITEM_STORE_ID_STORE_STORE_ID": true
+        },
+        "index": {
+            "MAGIC_WISHLIST_ITEM_WISHLIST_ID": true,
+            "MAGIC_WISHLIST_ITEM_PRODUCT_ID": true
+        }
+    },
+    "magic_wishlist_price_alert": {
+        "column": {
+            "alert_id": true,
+            "customer_id": true,
+            "product_id": true,
+            "wishlist_id": true,
+            "price_at_add": true,
+            "last_sent_at": true,
+            "is_active": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGIC_WISHLIST_PRICE_ALERT_CUSTOMER_ID_CUSTOMER_ENTITY_ENTITY_ID": true,
+            "MAGIC_WISHLIST_PRICE_ALERT_PRODUCT_ID_CATALOG_PRODUCT_ENTITY_ENTITY_ID": true,
+            "MAGIC_WISHLIST_PRICE_ALERT_WISHLIST_ID_MAGIC_WISHLIST_WISHLIST_ID": true
+        },
+        "index": {
+            "MAGIC_WISHLIST_PRICE_ALERT_CUSTOMER_ID": true,
+            "MAGIC_WISHLIST_PRICE_ALERT_PRODUCT_ID": true
+        }
+    }
+}
