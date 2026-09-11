@@ -129,94 +129,10 @@ module.exports = async env => {
         if (!jsRule.include.includes(extensionsPath)) {
             jsRule.include.push(extensionsPath);
         }
-
-        // Add overrides directory to babel-loader include paths
-        const overridesPath = path.resolve(__dirname, './overrides');
-        if (!jsRule.include.includes(overridesPath)) {
-            jsRule.include.push(overridesPath);
-        }
     }
-
-    // Add module alias for overrides directory resolution
-    if (!config.resolve) {
-        config.resolve = {};
-    }
-    if (!config.resolve.alias) {
-        config.resolve.alias = {};
-    }
-
-    // Only alias specific overridden components — never the whole package,
-    // or third-party packages that import venia-ui internals will break.
-    config.resolve.alias['@magento/venia-ui/lib/components/Header'] = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Header'
-    );
-
-    config.resolve.alias['@magento/venia-ui/lib/components/Footer'] = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Footer'
-    );
-
-    config.resolve.alias['@magento/venia-ui/lib/components/Routes'] = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Routes'
-    );
-
-    const overrideHeaderPath = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Header/index.js'
-    );
-
-    const overrideFooterPath = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Footer/index.js'
-    );
-
-    const overrideRoutesPath = path.resolve(
-        __dirname,
-        './overrides/@magento/venia-ui/lib/components/Routes/index.js'
-    );
 
     config.plugins = [
         ...config.plugins,
-        // Intercept venia-ui's relative import of Header (import Header from '../Header')
-        // inside Main component. The alias above only catches absolute imports;
-        // this plugin catches the relative one that Main actually uses.
-        new webpack.NormalModuleReplacementPlugin(
-            /^\.\.\/Header$/,
-            resource => {
-                if (
-                    resource.context &&
-                    resource.context.includes('@magento/venia-ui/lib/components/Main')
-                ) {
-                    resource.request = overrideHeaderPath;
-                }
-            }
-        ),
-        // Intercept venia-ui's relative import of Footer inside Main component.
-        new webpack.NormalModuleReplacementPlugin(
-            /^\.\.\/Footer$/,
-            resource => {
-                if (
-                    resource.context &&
-                    resource.context.includes('@magento/venia-ui/lib/components/Main')
-                ) {
-                    resource.request = overrideFooterPath;
-                }
-            }
-        ),
-        // Intercept venia-ui's relative import of Routes inside App component.
-        new webpack.NormalModuleReplacementPlugin(
-            /^\.\.\/Routes$/,
-            resource => {
-                if (
-                    resource.context &&
-                    resource.context.includes('@magento/venia-ui/lib/components/App')
-                ) {
-                    resource.request = overrideRoutesPath;
-                }
-            }
-        ),
         new DefinePlugin({
             /**
              * Make sure to add the same constants to

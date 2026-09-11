@@ -17,9 +17,6 @@
  * or modify functionality from its dependencies.
  */
 
-function localIntercept() {
-    // Override logic is handled by the overrides/@magento/venia-ui directory structure
-    // Buildpack will automatically use components from that directory
-}
+function localIntercept() {}
 
 module.exports = localIntercept;
