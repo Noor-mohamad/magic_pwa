@@ -120,6 +120,22 @@ module.exports = async env => {
         /braintree\-web\-drop\-in/
     ];
 
+    // Buildpack's default rules only file-load gif/jpg/png/svg — the
+    // MoonCart theme's icon fonts (FontAwesome, Flaticon) need woff/
+    // woff2/ttf/eot handled too, or css-loader chokes on their @font-face
+    // url()s.
+    config.module.rules.push({
+        test: /\.(woff2?|ttf|eot)(\?.*)?$/,
+        use: [
+            {
+                loader: 'file-loader',
+                options: {
+                    name: '[name]-[hash:base58:3].[ext]'
+                }
+            }
+        ]
+    });
+
     // Add extension directories to the babel-loader include paths
     const jsRule = config.module.rules.find(
         rule => rule.test && rule.test.toString().includes('jsx')
@@ -129,10 +145,76 @@ module.exports = async env => {
         if (!jsRule.include.includes(extensionsPath)) {
             jsRule.include.push(extensionsPath);
         }
+
+        // Add overrides directory to babel-loader include paths
+        const overridesPath = path.resolve(__dirname, './overrides');
+        if (!jsRule.include.includes(overridesPath)) {
+            jsRule.include.push(overridesPath);
+        }
     }
+
+    // MoonCart theme overrides (see /overrides/@magento/venia-ui/...)
+    if (!config.resolve) {
+        config.resolve = {};
+    }
+    if (!config.resolve.alias) {
+        config.resolve.alias = {};
+    }
+
+    // Whole-component overrides — the trailing "$" makes these EXACT
+    // matches, so only the bare package-relative specifier itself
+    // ('@magento/venia-ui/lib/components/Header', used to reach its
+    // index.js) is redirected. Without "$" webpack's alias also rewrites
+    // every longer path that starts with it (e.g. .../Header/cartTrigger),
+    // which would break our own override importing Header's real
+    // subcomponents from the original package.
+    config.resolve.alias[
+        '@magento/venia-ui/lib/components/Header$'
+    ] = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Header'
+    );
+    config.resolve.alias[
+        '@magento/venia-ui/lib/components/Logo$'
+    ] = path.resolve(__dirname, './overrides/@magento/venia-ui/lib/components/Logo');
+    config.resolve.alias[
+        '@magento/venia-ui/lib/components/Footer$'
+    ] = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Footer'
+    );
+
+    const overrideHeaderPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Header/index.js'
+    );
+    const overrideFooterPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Footer/index.js'
+    );
 
     config.plugins = [
         ...config.plugins,
+        // Intercept venia-ui's relative import of Header (import Header from '../Header')
+        // inside Main component. The alias above only catches absolute imports;
+        // this plugin catches the relative one that Main actually uses.
+        new webpack.NormalModuleReplacementPlugin(/^\.\.\/Header$/, resource => {
+            if (
+                resource.context &&
+                resource.context.includes('@magento/venia-ui/lib/components/Main')
+            ) {
+                resource.request = overrideHeaderPath;
+            }
+        }),
+        // Same technique for venia-ui's relative import of Footer inside Main.
+        new webpack.NormalModuleReplacementPlugin(/^\.\.\/Footer$/, resource => {
+            if (
+                resource.context &&
+                resource.context.includes('@magento/venia-ui/lib/components/Main')
+            ) {
+                resource.request = overrideFooterPath;
+            }
+        }),
         new DefinePlugin({
             /**
              * Make sure to add the same constants to
