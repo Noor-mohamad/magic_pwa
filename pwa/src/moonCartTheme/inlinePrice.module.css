@@ -1,0 +1,24 @@
+/*
+ * Venia's own Price component renders each formatted part (currency,
+ * integer, decimal, fraction, ...) as a bare, unclassed <span> unless a
+ * `classes` prop is passed in — it has no default CSS module of its own
+ * (see @magento/venia-ui/lib/components/Price/price.js). That's normally
+ * harmless, but the theme's own ".meta-content span { display: block }"
+ * rule (meant to stack a label above a value elsewhere in the theme) is
+ * a descendant selector, so it reaches into these unclassed spans too
+ * wherever Price sits inside a ".meta-content" wrapper — stacking the
+ * currency symbol, integer, and decimal each on their own line instead
+ * of reading as one price.
+ *
+ * Pass this as every part's class (see CategoryProductCard.js) to keep
+ * them inline regardless of what container Price ends up inside.
+ *
+ * Needs !important: ".meta-content span" is a class+element descendant
+ * selector (specificity 0,1,1), which otherwise beats this plain class
+ * selector (0,1,0) despite this rule being defined later — specificity,
+ * not source order, decides here, and we can't edit the theme's own
+ * ".meta-content span" rule since it's legitimately needed elsewhere.
+ */
+.inline {
+    display: inline !important;
+}

@@ -120,12 +120,17 @@ module.exports = async env => {
         /braintree\-web\-drop\-in/
     ];
 
-    // Buildpack's default rules only file-load gif/jpg/png/svg — the
-    // MoonCart theme's icon fonts (FontAwesome, Flaticon) need woff/
+    // Buildpack's default rules only file-load gif/jpg/png/svg (and only
+    // when the request ends exactly in that extension) — the MoonCart
+    // theme's icon fonts (FontAwesome, Flaticon, Feather) need woff/
     // woff2/ttf/eot handled too, or css-loader chokes on their @font-face
-    // url()s.
+    // url()s. Feather's @font-face also cache-busts every src with a
+    // "?t=<timestamp>" query string, including its .svg fallback — the
+    // trailing `\.svg\?.*$` alternative covers that specific case without
+    // double-handling plain (query-less) .svg image imports, which the
+    // built-in image rule already owns.
     config.module.rules.push({
-        test: /\.(woff2?|ttf|eot)(\?.*)?$/,
+        test: /\.(woff2?|ttf|eot)(\?.*)?$|\.svg\?.*$/,
         use: [
             {
                 loader: 'file-loader',
@@ -183,6 +188,12 @@ module.exports = async env => {
         __dirname,
         './overrides/@magento/venia-ui/lib/components/Footer'
     );
+    config.resolve.alias[
+        '@magento/venia-ui/lib/components/Routes$'
+    ] = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Routes'
+    );
 
     const overrideHeaderPath = path.resolve(
         __dirname,
@@ -191,6 +202,18 @@ module.exports = async env => {
     const overrideFooterPath = path.resolve(
         __dirname,
         './overrides/@magento/venia-ui/lib/components/Footer/index.js'
+    );
+    const overrideRoutesPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Routes/index.js'
+    );
+    const overrideCategoryContentPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/RootComponents/Category/categoryContent.js'
+    );
+    const overrideMainCssPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/components/Main/main.module.css'
     );
 
     config.plugins = [
@@ -215,6 +238,51 @@ module.exports = async env => {
                 resource.request = overrideFooterPath;
             }
         }),
+        // Same technique for venia-ui's relative import of Routes inside App.
+        new webpack.NormalModuleReplacementPlugin(/^\.\.\/Routes$/, resource => {
+            if (
+                resource.context &&
+                resource.context.includes('@magento/venia-ui/lib/components/App')
+            ) {
+                resource.request = overrideRoutesPath;
+            }
+        }),
+        // Category root component — category.js (URL/pagination/sort/meta
+        // orchestration, untouched) imports its own sibling
+        // './categoryContent' for the actual rendering; redirect just that
+        // to our theme-styled version. Scoped to the Category folder
+        // itself (not its NoProductsFound subfolder) so nothing else with
+        // a "./categoryContent" relative import is affected.
+        new webpack.NormalModuleReplacementPlugin(
+            /^\.\/categoryContent$/,
+            resource => {
+                if (
+                    resource.context &&
+                    resource.context.endsWith(
+                        '@magento/venia-ui/lib/RootComponents/Category'
+                    )
+                ) {
+                    resource.request = overrideCategoryContentPath;
+                }
+            }
+        ),
+        // CSS-module-only override — Main.js itself is untouched; only its
+        // own relative `./main.module.css` import is redirected, to drop
+        // the 1440px `max-w-site` cap stock Venia puts on `.page` (see
+        // overrides/@magento/venia-ui/lib/components/Main/main.module.css).
+        new webpack.NormalModuleReplacementPlugin(
+            /^\.\/main\.module\.css$/,
+            resource => {
+                if (
+                    resource.context &&
+                    resource.context.includes(
+                        '@magento/venia-ui/lib/components/Main'
+                    )
+                ) {
+                    resource.request = overrideMainCssPath;
+                }
+            }
+        ),
         new DefinePlugin({
             /**
              * Make sure to add the same constants to

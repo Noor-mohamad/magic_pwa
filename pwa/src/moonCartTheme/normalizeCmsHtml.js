@@ -1,12 +1,17 @@
 /**
  * Magento's Admin CMS block editor defaults to the Page Builder stage.
- * If raw HTML (like our mega-menu/footer block content) gets opened and
- * re-saved there instead of through "Edit HTML Code" source view, two
- * things happen to it on save:
+ * If raw HTML (like our mega-menu/footer/popup block content) gets
+ * opened and re-saved there instead of through "Edit HTML Code" source
+ * view, two things happen to it on save:
  *
- *   1. It gets wrapped: <div data-content-type="html" ...>...</div>
- *   2. The real markup inside gets HTML-escaped as plain text, e.g.
- *      <li class="..."> becomes the literal text "&lt;li class=...&gt;"
+ *   1. It gets wrapped in Page Builder's own layout containers — at
+ *      minimum a <div data-content-type="html">, but sometimes nested
+ *      inside a <div data-content-type="row"> > <div data-element="inner">
+ *      too (plus a <style> tag with the row's own background/parallax
+ *      rules), depending on how the block was built in the stage.
+ *   2. The real markup inside the "html" block gets HTML-escaped as
+ *      plain text, e.g. <li class="..."> becomes the literal text
+ *      "&lt;li class=...&gt;"
  *
  * Rather than rely on every admin edit going through the source view
  * correctly forever, this makes CMS block content resilient to both,
@@ -28,7 +33,13 @@ export function normalizeCmsHtml(html) {
 
     const scratch = document.createElement('div');
     scratch.innerHTML = content;
-    const wrapper = scratch.querySelector(':scope > [data-content-type="html"]');
+    // Not `:scope >` (direct child only) — Page Builder can nest the
+    // "html" block inside row/inner containers, so search any depth.
+    // We only ever want this one block's content; surrounding
+    // row/column scaffolding and its <style> tag are Page Builder's own
+    // layout chrome, not needed once we're rendering inside our own
+    // container.
+    const wrapper = scratch.querySelector('[data-content-type="html"]');
 
     if (wrapper) {
         const looksEscaped =

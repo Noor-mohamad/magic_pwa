@@ -1,8 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { gql, useQuery } from '@apollo/client';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { useHistory } from 'react-router-dom';
+
+import { useCartTrigger } from '@magento/peregrine/lib/talons/Header/useCartTrigger';
+import { useMiniCart } from '@magento/peregrine/lib/talons/MiniCart/useMiniCart';
+import { useAccountTrigger } from '@magento/peregrine/lib/talons/Header/useAccountTrigger';
+import { useUserContext } from '@magento/peregrine/lib/context/user';
+import Price from '@magento/venia-ui/lib/components/Price';
+import miniCartOperations from '@magento/venia-ui/lib/components/MiniCart/miniCart.gql';
 
 import logoDark from '../../../../../../src/moonCartTheme/images/logo.svg';
 import { normalizeCmsHtml } from '../../../../../../src/moonCartTheme/normalizeCmsHtml';
+import NewsletterPopup from '../../../../../../src/moonCartTheme/NewsletterPopup';
+import classes from './header.module.css';
+
+const AccountMenu = React.lazy(() =>
+    import('@magento/venia-ui/lib/components/AccountMenu')
+);
 
 const GET_MEGA_MENU_BLOCK = gql`
     query getMegaMenuBlock {
@@ -10,6 +24,98 @@ const GET_MEGA_MENU_BLOCK = gql`
             items {
                 identifier
                 content
+            }
+        }
+    }
+`;
+
+// Same shape as venia-ui's own Header/cartTrigger.gql — inlined rather
+// than deep-imported from venia-ui/lib/components/Header/*, since that
+// path prefix overlaps our own Header override alias.
+const GET_ITEM_COUNT_QUERY = gql`
+    query getMoonCartItemCount($cartId: String!) {
+        cart(cart_id: $cartId) {
+            id
+            total_quantity
+            total_summary_quantity_including_config
+        }
+    }
+`;
+
+// Same shape as venia-ui's own AccountChip/accountChip.gql.
+const GET_CUSTOMER_DETAILS = gql`
+    query getMoonCartCustomerDetails {
+        customer {
+            firstname
+        }
+    }
+`;
+
+// Same shape as venia-ui's own Autocomplete query (SearchBar/autocomplete.js) —
+// kept minimal since we only need enough to show name/image/price/link.
+const GET_SEARCH_SUGGESTIONS = gql`
+    query getMoonCartSearchSuggestions($inputText: String!) {
+        products(search: $inputText, currentPage: 1, pageSize: 8) {
+            items {
+                uid
+                name
+                url_key
+                small_image {
+                    url
+                }
+                price_range {
+                    maximum_price {
+                        final_price {
+                            value
+                            currency
+                        }
+                    }
+                }
+            }
+            total_count
+        }
+    }
+`;
+
+const GET_WISHLIST = gql`
+    query getMoonCartWishlist {
+        customer {
+            wishlists {
+                id
+                items_v2(pageSize: 10) {
+                    items {
+                        id
+                        product {
+                            uid
+                            name
+                            url_key
+                            image {
+                                url
+                            }
+                            price_range {
+                                maximum_price {
+                                    final_price {
+                                        value
+                                        currency
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+`;
+
+const REMOVE_WISHLIST_ITEMS = gql`
+    mutation removeMoonCartWishlistItems($wishlistId: ID!, $itemIds: [ID!]!) {
+        removeProductsFromWishlist(
+            wishlistId: $wishlistId
+            wishlistItemsIds: $itemIds
+        ) {
+            wishlist {
+                id
             }
         }
     }
@@ -43,6 +149,15 @@ const GET_MEGA_MENU_BLOCK = gql`
  * interactions it drove (mobile nav, offcanvas panels, cart/wishlist
  * tabs, the scroll-to-top button, "is-fixed" on scroll) are reimplemented
  * here with plain React state, toggling the theme's own CSS classes.
+ *
+ * Cart, account, and wishlist are now wired to real Magento data too,
+ * reusing Peregrine's own talons for the data/mutation logic
+ * (useCartTrigger, useMiniCart, useAccountTrigger, useUserContext) so we
+ * get real cart/session behavior for free — only the presentation is
+ * ours. Search submits to the real `/search.html` results page and shows
+ * live product matches (same query shape as venia-ui's own Autocomplete)
+ * in place of the theme's demo "You May Also Like" row once 3+
+ * characters are typed.
  */
 const Header = () => {
     const [isFixed, setIsFixed] = useState(false);
@@ -51,13 +166,94 @@ const Header = () => {
     const [cartOpen, setCartOpen] = useState(false);
     const [cartTab, setCartTab] = useState('cart');
     const [showScrollTop, setShowScrollTop] = useState(false);
+    const [searchValue, setSearchValue] = useState('');
     const stickyRef = useRef(null);
     const menuRef = useRef(null);
+    const history = useHistory();
 
     const { data: megaMenuData } = useQuery(GET_MEGA_MENU_BLOCK, {
         fetchPolicy: 'cache-and-network'
     });
     const menuHtml = normalizeCmsHtml(megaMenuData?.cmsBlocks?.items?.[0]?.content);
+
+    // --- Account / sign-in ---------------------------------------------
+    const [{ isSignedIn }] = useUserContext();
+    const {
+        accountMenuIsOpen,
+        accountMenuRef,
+        accountMenuTriggerRef,
+        setAccountMenuIsOpen,
+        handleTriggerClick: handleAccountTriggerClick
+    } = useAccountTrigger();
+    const { data: customerData } = useQuery(GET_CUSTOMER_DETAILS, {
+        skip: !isSignedIn,
+        fetchPolicy: 'cache-and-network'
+    });
+    const accountLabel = isSignedIn
+        ? `HI, ${(customerData?.customer?.firstname || '').toUpperCase()}`.trim()
+        : 'LOGIN / REGISTER';
+
+    // --- Cart ------------------------------------------------------------
+    const { itemCount } = useCartTrigger({
+        queries: { getItemCountQuery: GET_ITEM_COUNT_QUERY }
+    });
+    const {
+        productList: cartItems,
+        subTotal,
+        totalQuantity,
+        handleRemoveItem: handleRemoveCartItem,
+        handleProceedToCheckout,
+        handleEditCart
+    } = useMiniCart({
+        isOpen: cartOpen,
+        setIsOpen: setCartOpen,
+        operations: miniCartOperations
+    });
+
+    // --- Wishlist ----------------------------------------------------------
+    const { data: wishlistData, refetch: refetchWishlist } = useQuery(
+        GET_WISHLIST,
+        {
+            skip: !isSignedIn,
+            fetchPolicy: 'cache-and-network'
+        }
+    );
+    const wishlist = wishlistData?.customer?.wishlists?.[0];
+    const wishlistItems = wishlist?.items_v2?.items || [];
+    const [removeWishlistItems] = useMutation(REMOVE_WISHLIST_ITEMS);
+    const handleRemoveWishlistItem = async itemId => {
+        if (!wishlist) return;
+        try {
+            await removeWishlistItems({
+                variables: { wishlistId: wishlist.id, itemIds: [itemId] }
+            });
+            refetchWishlist();
+        } catch (e) {
+            // Error surfaced via Apollo's error link toast.
+        }
+    };
+
+    // --- Search suggestions -----------------------------------------------
+    const [runSearchSuggestions, { data: searchData }] = useLazyQuery(
+        GET_SEARCH_SUGGESTIONS
+    );
+    const searchResults = searchData?.products?.items || [];
+    useEffect(() => {
+        if (searchValue.trim().length < 3) return;
+        const timeout = setTimeout(() => {
+            runSearchSuggestions({ variables: { inputText: searchValue } });
+        }, 400);
+        return () => clearTimeout(timeout);
+    }, [searchValue, runSearchSuggestions]);
+
+    const handleSearchSubmit = e => {
+        e.preventDefault();
+        const query = searchValue.trim();
+        if (query) {
+            setSearchOpen(false);
+            history.push(`/search.html?query=${encodeURIComponent(query)}`);
+        }
+    };
 
     // Header Fixed (custom.js: headerFix) + Scroll To Top visibility
     useEffect(() => {
@@ -115,6 +311,7 @@ const Header = () => {
     };
 
     return (
+        <>
         <header
             className={
                 'site-header mo-left header header-transparent' +
@@ -157,10 +354,35 @@ const Header = () => {
                         <div className="extra-nav">
                             <div className="extra-cell">
                                 <ul className="header-right">
-                                    <li className="nav-item login-link">
-                                        <a className="nav-link" href="#">
-                                            LOGIN / REGISTER
+                                    <li
+                                        className="nav-item login-link"
+                                        ref={accountMenuTriggerRef}
+                                        style={{ position: 'relative' }}
+                                    >
+                                        <a
+                                            className="nav-link"
+                                            href="#"
+                                            onClick={e => {
+                                                e.preventDefault();
+                                                handleAccountTriggerClick();
+                                            }}
+                                        >
+                                            {accountLabel}
                                         </a>
+                                        <Suspense fallback={null}>
+                                            <AccountMenu
+                                                ref={accountMenuRef}
+                                                accountMenuIsOpen={accountMenuIsOpen}
+                                                setAccountMenuIsOpen={setAccountMenuIsOpen}
+                                                handleTriggerClick={handleAccountTriggerClick}
+                                                classes={{
+                                                    root_open: classes.accountMenuRoot,
+                                                    root_closed: classes.accountMenuRoot,
+                                                    contents: classes.accountMenuContents,
+                                                    contents_open: classes.accountMenuContents
+                                                }}
+                                            />
+                                        </Suspense>
                                     </li>
                                     <li className="nav-item search-link">
                                         <a
@@ -208,7 +430,11 @@ const Header = () => {
                                                 <path fillRule="evenodd" clipRule="evenodd" d="M8.16479 17.8278C8.16479 17.1374 8.72444 16.5778 9.4148 16.5778H9.42313C10.1135 16.5778 10.6731 17.1374 10.6731 17.8278C10.6731 18.5182 10.1135 19.0778 9.42313 19.0778H9.4148C8.72444 19.0778 8.16479 18.5182 8.16479 17.8278Z" fill="var(--white)" />
                                                 <path fillRule="evenodd" clipRule="evenodd" d="M14.8315 17.8278C14.8315 17.1374 15.3912 16.5778 16.0815 16.5778H16.0899C16.7802 16.5778 17.3399 17.1374 17.3399 17.8278C17.3399 18.5182 16.7802 19.0778 16.0899 19.0778H16.0815C15.3912 19.0778 14.8315 18.5182 14.8315 17.8278Z" fill="var(--white)" />
                                             </svg>
-                                            <span className="badge badge-circle">5</span>
+                                            {itemCount > 0 && (
+                                                <span className="badge badge-circle">
+                                                    {itemCount}
+                                                </span>
+                                            )}
                                         </a>
                                     </li>
                                 </ul>
@@ -253,7 +479,7 @@ const Header = () => {
                     &times;
                 </button>
                 <div className="container">
-                    <form className="header-item-search" onSubmit={e => e.preventDefault()}>
+                    <form className="header-item-search" onSubmit={handleSearchSubmit}>
                         <div className="input-group search-input">
                             <select className="default-select">
                                 <option>All Categories</option>
@@ -270,7 +496,14 @@ const Header = () => {
                                 <option>Luxury Couch</option>
                                 <option>Video Instructors</option>
                             </select>
-                            <input type="text" className="form-control" aria-label="Text input with dropdown button" placeholder="Search Product" />
+                            <input
+                                type="text"
+                                className="form-control"
+                                aria-label="Text input with dropdown button"
+                                placeholder="Search Product"
+                                value={searchValue}
+                                onChange={e => setSearchValue(e.target.value)}
+                            />
                             <button className="btn" type="submit">
                                 <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <circle cx="10.0535" cy="10.5399" r="7.49047" stroke="#0D775E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -280,46 +513,84 @@ const Header = () => {
                         </div>
                         <ul className="recent-tag">
                             <li className="pe-0"><span>Quick Search :</span></li>
-                            <li><a href="#">Wooden Products</a></li>
-                            <li><a href="#">Metal Products</a></li>
-                            <li><a href="#">Baby Products</a></li>
-                            <li><a href="#">Yoga Mats</a></li>
+                            <li><a href="#" onClick={e => { e.preventDefault(); setSearchValue('Wooden Products'); }}>Wooden Products</a></li>
+                            <li><a href="#" onClick={e => { e.preventDefault(); setSearchValue('Metal Products'); }}>Metal Products</a></li>
+                            <li><a href="#" onClick={e => { e.preventDefault(); setSearchValue('Baby Products'); }}>Baby Products</a></li>
+                            <li><a href="#" onClick={e => { e.preventDefault(); setSearchValue('Yoga Mats'); }}>Yoga Mats</a></li>
                         </ul>
                     </form>
                     <div className="row">
                         <div className="col-xl-12">
-                            <h5 className="mb-3">You May Also Like</h5>
-                            {/*
-                                Theme markup used a swiper carousel here
-                                (swiper/swiper-wrapper/swiper-slide), whose
-                                sizing CSS lives in vendor/swiper — not
-                                ported yet. Standing in with a plain
-                                scroll row until real Swiper (or real
-                                search-suggestion data) replaces this.
-                            */}
-                            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
-                                {[
-                                    ['1.png', 'Wooden Water Bottles', '$40.00'],
-                                    ['3.png', 'Bamboo toothbrushes', '$30.00'],
-                                    ['4.png', 'Eco friendly bags', '$35.00'],
-                                    ['2.png', 'Wooden Cup', '$20.00'],
-                                    ['5.png', 'Bamboo toothbrushes', '$70.00'],
-                                    ['6.png', 'Eco friendly bags', '$45.00'],
-                                    ['7.png', 'Wooden Bottles', '$40.00'],
-                                    ['4.png', 'Paper Bags', '$60.00']
-                                ].map(([img, title, price], i) => (
-                                    <div className="shop-card" key={i} style={{ flex: '0 0 180px', width: 180 }}>
-                                        <div className="dz-media">
-                                            {/* eslint-disable-next-line */}
-                                            <img src={require(`../../../../../../src/moonCartTheme/images/shop/product/${img}`)} alt="image" />
+                            {searchValue.trim().length >= 3 ? (
+                                <>
+                                    <h5 className="mb-3">Search Results</h5>
+                                    {searchResults.length ? (
+                                        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+                                            {searchResults.map(product => (
+                                                <div className="shop-card" key={product.uid} style={{ flex: '0 0 180px', width: 180 }}>
+                                                    <div className="dz-media">
+                                                        <a href="#" onClick={e => { e.preventDefault(); setSearchOpen(false); history.push(`/${product.url_key}.html`); }}>
+                                                            <img src={product.small_image?.url} alt={product.name} />
+                                                        </a>
+                                                    </div>
+                                                    <div className="dz-content">
+                                                        <h6 className="title">
+                                                            <a href="#" onClick={e => { e.preventDefault(); setSearchOpen(false); history.push(`/${product.url_key}.html`); }}>
+                                                                {product.name}
+                                                            </a>
+                                                        </h6>
+                                                        <h6 className="price">
+                                                            <Price
+                                                                value={product.price_range.maximum_price.final_price.value}
+                                                                currencyCode={product.price_range.maximum_price.final_price.currency}
+                                                            />
+                                                        </h6>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <div className="dz-content">
-                                            <h6 className="title"><a href="#">{title}</a></h6>
-                                            <h6 className="price">{price}</h6>
-                                        </div>
+                                    ) : (
+                                        <p>No products matched &quot;{searchValue}&quot;.</p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <h5 className="mb-3">You May Also Like</h5>
+                                    {/*
+                                        Theme markup used a swiper carousel here
+                                        (swiper/swiper-wrapper/swiper-slide), whose
+                                        sizing CSS lives in vendor/swiper — not
+                                        ported yet. Standing in with a plain
+                                        scroll row until real Swiper replaces this.
+                                        Shown only as a default placeholder before
+                                        a search term is typed; real matches take
+                                        over above once 3+ characters are entered.
+                                    */}
+                                    <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+                                        {[
+                                            ['1.png', 'Wooden Water Bottles', '$40.00'],
+                                            ['3.png', 'Bamboo toothbrushes', '$30.00'],
+                                            ['4.png', 'Eco friendly bags', '$35.00'],
+                                            ['2.png', 'Wooden Cup', '$20.00'],
+                                            ['5.png', 'Bamboo toothbrushes', '$70.00'],
+                                            ['6.png', 'Eco friendly bags', '$45.00'],
+                                            ['7.png', 'Wooden Bottles', '$40.00'],
+                                            ['4.png', 'Paper Bags', '$60.00']
+                                        ].map(([img, title, price], i) => (
+                                            <div className="shop-card" key={i} style={{ flex: '0 0 180px', width: 180 }}>
+                                                <div className="dz-media">
+                                                    {/* eslint-disable-next-line */}
+                                                    <img src={require(`../../../../../../src/moonCartTheme/images/shop/product/${img}`)} alt="image" />
+                                                </div>
+                                                <div className="dz-content">
+                                                    <h6 className="title"><a href="#">{title}</a></h6>
+                                                    <h6 className="price">{price}</h6>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -342,7 +613,9 @@ const Header = () => {
                                         onClick={() => setCartTab('cart')}
                                     >
                                         Shopping Cart
-                                        <span className="badge badge-light">5</span>
+                                        {totalQuantity > 0 && (
+                                            <span className="badge badge-light">{totalQuantity}</span>
+                                        )}
                                     </button>
                                 </li>
                                 <li className="nav-item" role="presentation">
@@ -352,94 +625,141 @@ const Header = () => {
                                         onClick={() => setCartTab('wishlist')}
                                     >
                                         Wishlist
-                                        <span className="badge badge-light">2</span>
+                                        {wishlistItems.length > 0 && (
+                                            <span className="badge badge-light">{wishlistItems.length}</span>
+                                        )}
                                     </button>
                                 </li>
                             </ul>
                             <div className="tab-content pt-4">
                                 <div className={'tab-pane fade' + (cartTab === 'cart' ? ' show active' : '')}>
                                     <div className="shop-sidebar-cart">
-                                        <ul className="sidebar-cart-list">
-                                            {[
-                                                ['pic1.jpg', 'Wooden Water Bottles', '$50.00'],
-                                                ['pic2.jpg', 'Bamboo Cups', '$40.00'],
-                                                ['pic3.jpg', 'Wooden Toothbrushes', '$65.00']
-                                            ].map(([img, title, price], i) => (
-                                                <li key={i}>
-                                                    <div className="cart-widget">
-                                                        <div className="dz-media me-3">
-                                                            {/* eslint-disable-next-line */}
-                                                            <img src={require(`../../../../../../src/moonCartTheme/images/shop/shop-cart/${img}`)} alt="" />
-                                                        </div>
-                                                        <div className="cart-content">
-                                                            <h6 className="title"><a href="#">{title}</a></h6>
-                                                            <div className="d-flex align-items-center">
-                                                                <div className="btn-quantity light quantity-sm me-3">
-                                                                    <input type="text" defaultValue="1" readOnly />
+                                        {cartItems?.length ? (
+                                            <>
+                                                <ul className="sidebar-cart-list">
+                                                    {cartItems.map(item => (
+                                                        <li key={item.uid}>
+                                                            <div className="cart-widget">
+                                                                <div className="dz-media me-3">
+                                                                    <img src={item.product.thumbnail?.url} alt={item.product.name} />
                                                                 </div>
-                                                                <h6 className="dz-price text-primary mb-0">{price}</h6>
+                                                                <div className="cart-content">
+                                                                    <h6 className="title">
+                                                                        <a href="#" onClick={e => { e.preventDefault(); setCartOpen(false); history.push(`/${item.product.url_key}.html`); }}>
+                                                                            {item.product.name}
+                                                                        </a>
+                                                                    </h6>
+                                                                    <div className="d-flex align-items-center">
+                                                                        <div className="btn-quantity light quantity-sm me-3">
+                                                                            <input type="text" defaultValue={item.quantity} readOnly />
+                                                                        </div>
+                                                                        <h6 className="dz-price text-primary mb-0">
+                                                                            <Price
+                                                                                value={item.prices.price.value}
+                                                                                currencyCode={item.prices.price.currency}
+                                                                            />
+                                                                        </h6>
+                                                                    </div>
+                                                                </div>
+                                                                <a
+                                                                    href="#"
+                                                                    className="dz-close"
+                                                                    onClick={e => {
+                                                                        e.preventDefault();
+                                                                        handleRemoveCartItem(item.uid);
+                                                                    }}
+                                                                >
+                                                                    <i className="ti-close" />
+                                                                </a>
                                                             </div>
-                                                        </div>
-                                                        <a href="#" className="dz-close" onClick={e => e.preventDefault()}>
-                                                            <i className="ti-close" />
-                                                        </a>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        <div className="cart-total">
-                                            <h5 className="mb-0">Subtotal:</h5>
-                                            <h5 className="mb-0">300.00$</h5>
-                                        </div>
-                                        <div className="mt-auto">
-                                            <div className="shipping-time">
-                                                <div className="dz-icon">
-                                                    <i className="flaticon flaticon-ship" />
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                <div className="cart-total">
+                                                    <h5 className="mb-0">Subtotal:</h5>
+                                                    <h5 className="mb-0">
+                                                        {subTotal && (
+                                                            <Price value={subTotal.value} currencyCode={subTotal.currency} />
+                                                        )}
+                                                    </h5>
                                                 </div>
-                                                <div className="shipping-content">
-                                                    <h6 className="title pe-4">Congratulations , you&apos;ve got free shipping!</h6>
-                                                    <div className="progress">
-                                                        <div className="progress-bar progress-animated border-0" style={{ width: '75%' }} role="progressbar">
-                                                            <span className="sr-only">75% Complete</span>
-                                                        </div>
-                                                    </div>
+                                                <div className="mt-auto">
+                                                    <a href="#" className="btn btn-light btn-block m-b20" onClick={e => { e.preventDefault(); handleProceedToCheckout(); }}>Checkout</a>
+                                                    <a href="#" className="btn btn-secondary btn-block" onClick={e => { e.preventDefault(); handleEditCart(); }}>View Cart</a>
                                                 </div>
-                                            </div>
-                                            <a href="#" className="btn btn-light btn-block m-b20">Checkout</a>
-                                            <a href="#" className="btn btn-secondary btn-block">View Cart</a>
-                                        </div>
+                                            </>
+                                        ) : (
+                                            <p className="mt-3">Your cart is empty.</p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className={'tab-pane fade' + (cartTab === 'wishlist' ? ' show active' : '')}>
                                     <div className="shop-sidebar-cart">
-                                        <ul className="sidebar-cart-list">
-                                            {[
-                                                ['pic1.jpg', 'Wooden Water Bottles', '$50.00'],
-                                                ['pic2.jpg', 'Wooden Cup', '$40.00'],
-                                                ['pic3.jpg', 'Bamboo toothbrushes', '$65.00']
-                                            ].map(([img, title, price], i) => (
-                                                <li key={i}>
-                                                    <div className="cart-widget">
-                                                        <div className="dz-media me-3">
-                                                            {/* eslint-disable-next-line */}
-                                                            <img src={require(`../../../../../../src/moonCartTheme/images/shop/shop-cart/${img}`)} alt="" />
-                                                        </div>
-                                                        <div className="cart-content">
-                                                            <h6 className="title"><a href="#">{title}</a></h6>
-                                                            <div className="d-flex align-items-center">
-                                                                <h6 className="dz-price text-primary mb-0">{price}</h6>
+                                        {!isSignedIn ? (
+                                            <p className="mt-3">
+                                                <a
+                                                    href="#"
+                                                    onClick={e => {
+                                                        e.preventDefault();
+                                                        setCartOpen(false);
+                                                        setAccountMenuIsOpen(true);
+                                                    }}
+                                                >
+                                                    Sign in
+                                                </a>{' '}
+                                                to view your wishlist.
+                                            </p>
+                                        ) : wishlistItems.length ? (
+                                            <>
+                                                <ul className="sidebar-cart-list">
+                                                    {wishlistItems.map(item => (
+                                                        <li key={item.id}>
+                                                            <div className="cart-widget">
+                                                                <div className="dz-media me-3">
+                                                                    <img src={item.product.image?.url} alt={item.product.name} />
+                                                                </div>
+                                                                <div className="cart-content">
+                                                                    <h6 className="title">
+                                                                        <a href="#" onClick={e => { e.preventDefault(); setCartOpen(false); history.push(`/${item.product.url_key}.html`); }}>
+                                                                            {item.product.name}
+                                                                        </a>
+                                                                    </h6>
+                                                                    <div className="d-flex align-items-center">
+                                                                        <h6 className="dz-price text-primary mb-0">
+                                                                            <Price
+                                                                                value={item.product.price_range.maximum_price.final_price.value}
+                                                                                currencyCode={item.product.price_range.maximum_price.final_price.currency}
+                                                                            />
+                                                                        </h6>
+                                                                    </div>
+                                                                </div>
+                                                                <a
+                                                                    href="#"
+                                                                    className="dz-close"
+                                                                    onClick={e => {
+                                                                        e.preventDefault();
+                                                                        handleRemoveWishlistItem(item.id);
+                                                                    }}
+                                                                >
+                                                                    <i className="ti-close" />
+                                                                </a>
                                                             </div>
-                                                        </div>
-                                                        <a href="#" className="dz-close" onClick={e => e.preventDefault()}>
-                                                            <i className="ti-close" />
-                                                        </a>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        <div className="mt-auto">
-                                            <a href="#" className="btn btn-secondary btn-block">Check Your Favourite</a>
-                                        </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                <div className="mt-auto">
+                                                    <a
+                                                        href="#"
+                                                        className="btn btn-secondary btn-block"
+                                                        onClick={e => { e.preventDefault(); setCartOpen(false); history.push('/wishlist'); }}
+                                                    >
+                                                        Check Your Favourite
+                                                    </a>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <p className="mt-3">Your wishlist is empty.</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -462,6 +782,8 @@ const Header = () => {
                 <i className="fas fa-arrow-up" />
             </button>
         </header>
+        <NewsletterPopup />
+        </>
     );
 };
 

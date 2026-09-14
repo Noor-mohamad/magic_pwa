@@ -6,6 +6,7 @@ import './index.css';
 // MoonCart theme assets (static port — see /overrides/@magento/venia-ui/lib/components/Header & Footer)
 import './moonCartTheme/icons/fontawesome/css/all.min.css';
 import './moonCartTheme/icons/flaticon/flaticon_mooncart.css';
+import './moonCartTheme/icons/feather/css/iconfont.css';
 import './moonCartTheme/css/style.css';
 import app from '@magento/peregrine/lib/store/actions/app';
 import Adapter from '@magento/venia-ui/lib/components/Adapter';

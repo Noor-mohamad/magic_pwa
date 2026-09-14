@@ -30,7 +30,8 @@
   "dependencies": {
     "@magento/experience-platform-connector": "~1.0.13",
     "@magento/pwa-buildpack": "~11.5.3",
-    "dompurify": "~3.2.4"
+    "dompurify": "~3.2.4",
+    "nouislider": "15.8.1"
   },
   "devDependencies": {
     "@adobe/apollo-link-mutation-queue": "~1.0.2",

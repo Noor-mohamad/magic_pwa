@@ -1,0 +1,24 @@
+/*
+ * Venia's own AccountMenu positions itself assuming a full-width header
+ * toolbar ancestor (it centers a viewport-wide panel with left:50% +
+ * translateX(-50%), then right-aligns its contents within that). Wrapped
+ * in our theme's narrow "LOGIN / REGISTER" <li> instead, that math
+ * places the panel off-screen. These override just the box model/
+ * position — open/closed opacity & visibility still come from Venia's
+ * own classes alongside these (see accountMenuRef usage in header.js).
+ */
+.accountMenuRoot {
+    position: absolute !important;
+    top: 100% !important;
+    left: auto !important;
+    right: 0 !important;
+    transform: none !important;
+    width: 320px !important;
+    max-width: calc(100vw - 40px) !important;
+}
+
+.accountMenuContents {
+    position: static !important;
+    width: 100% !important;
+    transform: none !important;
+}

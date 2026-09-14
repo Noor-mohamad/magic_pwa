@@ -1,0 +1,51 @@
+/*
+ * CSS-module-only override for venia-ui's Main component (see webpack.config.js
+ * — Main.js's own relative `./main.module.css` import is redirected here).
+ * Main.js itself is untouched: <Header/> and <Footer/> render as its
+ * siblings (already full width, unaffected by this), but everything in
+ * between — every page's actual content, including our CMS-block-driven
+ * HomePage — is wrapped in `.page`, which stock Venia caps at 1440px via
+ * the `max-w-site` Tailwind utility + auto margins. The MoonCart theme
+ * is designed full-bleed (background-image sections meant to span the
+ * whole viewport), so that cap fought the design on any screen wider
+ * than 1440px. Same class names as the original, just without the width
+ * cap on `.page`.
+ */
+.root {
+    composes: bg-white from global;
+    composes: relative from global;
+    composes: text-colorDefault from global;
+    composes: z-foreground from global;
+}
+
+.root_masked {
+    composes: root;
+}
+
+.page {
+    composes: my-0 from global;
+    width: 100%;
+    min-height: 40rem;
+}
+
+.page_masked {
+    composes: page;
+}
+
+@media screen(hsm) {
+    .page {
+        min-height: 48rem;
+    }
+}
+
+@media screen(hmd) {
+    .page {
+        min-height: 60rem;
+    }
+}
+
+@media screen(hlg) {
+    .page {
+        min-height: 72rem;
+    }
+}
