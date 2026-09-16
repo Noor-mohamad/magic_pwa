@@ -21,12 +21,31 @@ import CategoryProductCardGrid from './CategoryProductCardGrid';
  * collage just renders fewer tiles until real data arrives, rather
  * than reserving the exact theme skeleton shape per slot.
  */
-const CategoryProductCollage = ({ items, wishlistedProductUids, onToggleWishlist }) => {
+const CategoryProductCollage = ({
+    items,
+    wishlistedProductUids,
+    onToggleWishlist,
+    isInCompare,
+    onToggleCompare,
+    onQuickView
+}) => {
     const products = items.filter(Boolean);
     const groups = [];
     for (let i = 0; i < products.length; i += 5) {
         groups.push(products.slice(i, i + 5));
     }
+
+    const renderCard = product => (
+        <CategoryProductCardGrid
+            key={product.uid}
+            product={product}
+            isWishlisted={wishlistedProductUids.has(product.uid)}
+            onToggleWishlist={() => onToggleWishlist(product)}
+            isInCompare={isInCompare(product.uid)}
+            onToggleCompare={onToggleCompare}
+            onQuickView={onQuickView}
+        />
+    );
 
     return (
         <>
@@ -35,11 +54,7 @@ const CategoryProductCollage = ({ items, wishlistedProductUids, onToggleWishlist
 
                 const bigTile = big && (
                     <div className="col-lg-6" key={`big-${big.uid}`}>
-                        <CategoryProductCardGrid
-                            product={big}
-                            isWishlisted={wishlistedProductUids.has(big.uid)}
-                            onToggleWishlist={() => onToggleWishlist(big)}
-                        />
+                        {renderCard(big)}
                     </div>
                 );
 
@@ -48,11 +63,7 @@ const CategoryProductCollage = ({ items, wishlistedProductUids, onToggleWishlist
                         <div className="row gx-xl-4 g-3">
                             {small.map(product => (
                                 <div className="col-6" key={product.uid}>
-                                    <CategoryProductCardGrid
-                                        product={product}
-                                        isWishlisted={wishlistedProductUids.has(product.uid)}
-                                        onToggleWishlist={() => onToggleWishlist(product)}
-                                    />
+                                    {renderCard(product)}
                                 </div>
                             ))}
                         </div>

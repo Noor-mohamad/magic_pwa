@@ -22,15 +22,26 @@ const Star = ({ filled }) => (
  * view). 4-up at xl via the wrapping column classes in categoryContent.js.
  *
  * Same real-data wiring as the List card (CategoryProductCard.js):
- * useAddToCartButton, Price, rating_summary-based stars, wishlist
- * props passed down from categoryContent.js. Same intentional omissions
- * too (see categoryContent.js's doc comment): no Sale/New product-tag
- * ribbon and no dz-tags — both need product fields outside category.js's
- * default query. Quick View has no modal built (deferred), so that
- * button just acts as a second link to the product page rather than
- * being a dead button.
+ * useAddToCartButton, Price, rating_summary-based stars, wishlist and
+ * compare props passed down from categoryContent.js. Same intentional
+ * omissions too (see categoryContent.js's doc comment): no Sale/New
+ * product-tag ribbon and no dz-tags — both need product fields outside
+ * category.js's default query.
+ *
+ * The theme's shop-card design only has 3 meta icons (Quick View,
+ * wishlist, cart) — Compare isn't part of this card's own markup, so
+ * the 4th icon here (icon-repeat) is an addition, not a theme port;
+ * styled to match the existing 3 (.meta-icon) rather than invented
+ * from scratch.
  */
-const CategoryProductCardGrid = ({ product, isWishlisted, onToggleWishlist }) => {
+const CategoryProductCardGrid = ({
+    product,
+    isWishlisted,
+    onToggleWishlist,
+    isInCompare,
+    onToggleCompare,
+    onQuickView
+}) => {
     const history = useHistory();
     const { handleAddToCart, isDisabled, isInStock } = useAddToCartButton({
         item: product,
@@ -83,15 +94,15 @@ const CategoryProductCardGrid = ({ product, isWishlisted, onToggleWishlist }) =>
                     />
                 </a>
                 <div className="shop-meta">
-                    <a
-                        href={productUrl}
-                        onClick={goToProduct}
+                    <button
+                        type="button"
+                        onClick={() => onQuickView(product)}
                         className="btn btn-secondary btn-icon"
-                        title="View product"
+                        title="Quick View"
                     >
                         <i className="fa-solid fa-eye d-md-none d-block" />
                         <span className="d-md-block d-none">Quick View</span>
-                    </a>
+                    </button>
                     <button
                         type="button"
                         className={'btn btn-primary meta-icon dz-wishicon' + (isWishlisted ? ' active' : '')}
@@ -122,6 +133,17 @@ const CategoryProductCardGrid = ({ product, isWishlisted, onToggleWishlist }) =>
                             <path d="M13.4912 2.6132C13.4523 2.60565 13.4127 2.60182 13.373 2.60176H3.46022L3.30322 1.55144C3.20541 0.853911 2.60876 0.334931 1.90439 0.334717H0.627988C0.281154 0.334717 0 0.61587 0 0.962705C0 1.30954 0.281154 1.59069 0.627988 1.59069H1.90595C1.9858 1.59011 2.05338 1.64957 2.06295 1.72886L3.03004 8.35727C3.16263 9.19953 3.88712 9.8209 4.73975 9.82363H11.2724C12.0933 9.8247 12.8015 9.24777 12.9664 8.44362L13.9884 3.34906C14.0543 3.00854 13.8317 2.67909 13.4912 2.6132Z" fill="white" />
                             <path d="M6.61539 11.9676C6.57716 11.0948 5.85687 10.4077 4.98324 10.4108C4.08483 10.4471 3.38595 11.2048 3.42225 12.1032C3.45708 12.9653 4.15833 13.6505 5.02092 13.6653H5.06017C5.95846 13.626 6.65474 12.8658 6.61539 11.9676Z" fill="white" />
                         </svg>
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-primary meta-icon dz-compareicon"
+                        onClick={() => onToggleCompare(product)}
+                        aria-label={isInCompare ? 'Remove from compare' : 'Add to compare'}
+                        aria-pressed={isInCompare}
+                        title={isInCompare ? 'Remove from compare' : 'Add to compare'}
+                        style={isInCompare ? { backgroundColor: 'var(--primary)' } : undefined}
+                    >
+                        <i className="icon feather icon-repeat" style={{ color: '#fff', fontSize: 14 }} />
                     </button>
                 </div>
             </div>

@@ -20,6 +20,8 @@ import colorSwatchHex from '../../../../../../src/moonCartTheme/colorSwatchHex';
 import ThemeSelect from '../../../../../../src/moonCartTheme/ThemeSelect';
 import ShopViewSwitcher from '../../../../../../src/moonCartTheme/ShopViewSwitcher';
 import { decodeHtmlEntities } from '../../../../../../src/moonCartTheme/decodeHtmlEntities';
+import QuickViewModal from '../../../../../../src/moonCartTheme/QuickViewModal';
+import { useCompareList } from '../../../../../../src/moonCartTheme/compareList/useCompareList';
 
 // Attribute codes with their own dedicated widget below (slider,
 // swatches, pills). Every other real aggregation the catalog returns
@@ -169,8 +171,10 @@ const GET_ICON_BOX_BLOCK = gql`
  *    gets its own widget too, via the generic "otherFilters" loop —
  *    the theme's static demo never designed a bespoke look for those,
  *    so they render as the same checkbox-pill style as Size.
- *  - No Quick View modal, no Compare icon, no sidebar Tags cloud (see the
- *    checkpoint — dropped, no Magento equivalent).
+ *  - Quick View (QuickViewModal.js) and Compare (compareList/
+ *    useCompareList.js, a real Magento compare list — see that file's
+ *    doc comment) are both wired now; only the sidebar Tags cloud is
+ *    still dropped (no Magento equivalent).
  *  - Sale/New ribbon badges, the product card's dz-tags (category links),
  *    and its descriptive paragraph (short_description) all need fields
  *    beyond what category.js's default product query fetches — since
@@ -182,6 +186,8 @@ const CategoryContent = props => {
     const { categoryId, data, isLoading, pageControl, sortProps, pageSize } = props;
     const [currentSort, setCurrentSort] = sortProps;
     const [viewMode, setViewMode] = useState('grid');
+    const [quickViewProduct, setQuickViewProduct] = useState(null);
+    const { isInCompare, toggleCompare, itemCount: compareCount } = useCompareList();
 
     const {
         availableSortMethods,
@@ -682,6 +688,9 @@ const CategoryContent = props => {
                                             items={items}
                                             wishlistedProductUids={wishlistedProductUids}
                                             onToggleWishlist={handleToggleWishlist}
+                                            isInCompare={isInCompare}
+                                            onToggleCompare={toggleCompare}
+                                            onQuickView={setQuickViewProduct}
                                         />
                                     ) : (
                                         <div className={VIEW_CONFIG[viewMode].rowClass}>
@@ -699,6 +708,9 @@ const CategoryContent = props => {
                                                             onToggleWishlist={() =>
                                                                 handleToggleWishlist(product)
                                                             }
+                                                            isInCompare={isInCompare(product.uid)}
+                                                            onToggleCompare={toggleCompare}
+                                                            onQuickView={setQuickViewProduct}
                                                         />
                                                     </div>
                                                 ) : (
@@ -778,6 +790,64 @@ const CategoryContent = props => {
                     className="content-inner py-0"
                     dangerouslySetInnerHTML={{ __html: iconBoxHtml }}
                 />
+            )}
+
+            <QuickViewModal
+                product={quickViewProduct}
+                onClose={() => setQuickViewProduct(null)}
+                isWishlisted={
+                    quickViewProduct
+                        ? wishlistedProductUids.has(quickViewProduct.uid)
+                        : false
+                }
+                onToggleWishlist={() =>
+                    quickViewProduct && handleToggleWishlist(quickViewProduct)
+                }
+                isInCompare={quickViewProduct ? isInCompare(quickViewProduct.uid) : false}
+                onToggleCompare={() =>
+                    quickViewProduct && toggleCompare(quickViewProduct)
+                }
+            />
+
+            {/*
+                Not a theme element — the theme's own SCSS has a
+                Compare page design (_compare.scss) but never designed
+                any UI to actually get there, since Compare isn't part
+                of its demo. This small bar is the minimum needed to
+                make the feature discoverable/usable at all.
+            */}
+            {compareCount > 0 && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1000,
+                        background: '#24262B',
+                        color: '#fff',
+                        padding: '12px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 16
+                    }}
+                >
+                    <span>
+                        {compareCount} product{compareCount === 1 ? '' : 's'} selected
+                        to compare
+                    </span>
+                    <a
+                        href="/compare"
+                        className="btn btn-sm btn-secondary"
+                        onClick={e => {
+                            e.preventDefault();
+                            history.push('/compare');
+                        }}
+                    >
+                        Compare Now
+                    </a>
+                </div>
             )}
         </div>
     );
