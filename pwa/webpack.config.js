@@ -211,6 +211,10 @@ module.exports = async env => {
         __dirname,
         './overrides/@magento/venia-ui/lib/RootComponents/Category/categoryContent.js'
     );
+    const overrideProductPath = path.resolve(
+        __dirname,
+        './overrides/@magento/venia-ui/lib/RootComponents/Product/product.js'
+    );
     const overrideMainCssPath = path.resolve(
         __dirname,
         './overrides/@magento/venia-ui/lib/components/Main/main.module.css'
@@ -266,6 +270,22 @@ module.exports = async env => {
                 }
             }
         ),
+        // Product root component — index.js's own "export { default }
+        // from './product'" is the only thing pulling in the real
+        // product.js, so redirecting just that relative import (same
+        // technique as categoryContent above) swaps in our schema-safe
+        // version (see overrides/.../RootComponents/Product/product.js
+        // for why the stock one 500s on this Magento instance).
+        new webpack.NormalModuleReplacementPlugin(/^\.\/product$/, resource => {
+            if (
+                resource.context &&
+                resource.context.endsWith(
+                    '@magento/venia-ui/lib/RootComponents/Product'
+                )
+            ) {
+                resource.request = overrideProductPath;
+            }
+        }),
         // CSS-module-only override — Main.js itself is untouched; only its
         // own relative `./main.module.css` import is redirected, to drop
         // the 1440px `max-w-site` cap stock Venia puts on `.page` (see

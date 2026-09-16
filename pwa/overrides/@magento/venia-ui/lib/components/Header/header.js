@@ -2,7 +2,6 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { gql, useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { useHistory } from 'react-router-dom';
 
-import { useCartTrigger } from '@magento/peregrine/lib/talons/Header/useCartTrigger';
 import { useMiniCart } from '@magento/peregrine/lib/talons/MiniCart/useMiniCart';
 import { useAccountTrigger } from '@magento/peregrine/lib/talons/Header/useAccountTrigger';
 import { useUserContext } from '@magento/peregrine/lib/context/user';
@@ -25,19 +24,6 @@ const GET_MEGA_MENU_BLOCK = gql`
                 identifier
                 content
             }
-        }
-    }
-`;
-
-// Same shape as venia-ui's own Header/cartTrigger.gql — inlined rather
-// than deep-imported from venia-ui/lib/components/Header/*, since that
-// path prefix overlaps our own Header override alias.
-const GET_ITEM_COUNT_QUERY = gql`
-    query getMoonCartItemCount($cartId: String!) {
-        cart(cart_id: $cartId) {
-            id
-            total_quantity
-            total_summary_quantity_including_config
         }
     }
 `;
@@ -152,9 +138,10 @@ const REMOVE_WISHLIST_ITEMS = gql`
  *
  * Cart, account, and wishlist are now wired to real Magento data too,
  * reusing Peregrine's own talons for the data/mutation logic
- * (useCartTrigger, useMiniCart, useAccountTrigger, useUserContext) so we
- * get real cart/session behavior for free — only the presentation is
- * ours. Search submits to the real `/search.html` results page and shows
+ * (useMiniCart, useAccountTrigger, useUserContext) so we get real
+ * cart/session behavior for free — only the presentation is ours.
+ * (useCartTrigger was dropped — see the "Cart" section below.)
+ * Search submits to the real `/search.html` results page and shows
  * live product matches (same query shape as venia-ui's own Autocomplete)
  * in place of the theme's demo "You May Also Like" row once 3+
  * characters are typed.
@@ -194,9 +181,12 @@ const Header = () => {
         : 'LOGIN / REGISTER';
 
     // --- Cart ------------------------------------------------------------
-    const { itemCount } = useCartTrigger({
-        queries: { getItemCountQuery: GET_ITEM_COUNT_QUERY }
-    });
+    // useCartTrigger isn't used here — its itemCount reads
+    // `total_summary_quantity_including_config`, a field this
+    // Magento instance's schema doesn't have (real GraphQL error,
+    // not just unused). useMiniCart's own `totalQuantity` (below)
+    // already reads the real `total_quantity` field for the exact
+    // same purpose, so it's reused directly for the header badge too.
     const {
         productList: cartItems,
         subTotal,
@@ -430,9 +420,9 @@ const Header = () => {
                                                 <path fillRule="evenodd" clipRule="evenodd" d="M8.16479 17.8278C8.16479 17.1374 8.72444 16.5778 9.4148 16.5778H9.42313C10.1135 16.5778 10.6731 17.1374 10.6731 17.8278C10.6731 18.5182 10.1135 19.0778 9.42313 19.0778H9.4148C8.72444 19.0778 8.16479 18.5182 8.16479 17.8278Z" fill="var(--white)" />
                                                 <path fillRule="evenodd" clipRule="evenodd" d="M14.8315 17.8278C14.8315 17.1374 15.3912 16.5778 16.0815 16.5778H16.0899C16.7802 16.5778 17.3399 17.1374 17.3399 17.8278C17.3399 18.5182 16.7802 19.0778 16.0899 19.0778H16.0815C15.3912 19.0778 14.8315 18.5182 14.8315 17.8278Z" fill="var(--white)" />
                                             </svg>
-                                            {itemCount > 0 && (
+                                            {totalQuantity > 0 && (
                                                 <span className="badge badge-circle">
-                                                    {itemCount}
+                                                    {totalQuantity}
                                                 </span>
                                             )}
                                         </a>
