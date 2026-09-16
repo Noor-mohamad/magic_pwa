@@ -6,3 +6,22 @@ type StoreConfig {
     @doc(description: "Whether canonical meta tags are enabled for category pages.")
     @resolver(class: "Magic\\PwaGraphQl\\Model\\Resolver\\CategoryCanonicalTag")
 }
+
+# Adds "robotsConfig" to Query — required by the PWA's own RobotsMeta
+# component (venia-ui's robotsMeta.gql.js), which this Magento
+# instance's installed schema otherwise doesn't expose at all. Backed
+# by the same Admin setting (Content > Design > Configuration > Search
+# Engine Robots) Magento's own robots.txt generator uses
+# (Magento\Robots\Model\Robots), just surfaced over GraphQL.
+type RobotsConfig @doc(description: "Robots meta tag configuration for the storefront.") {
+    defaultRobots: String
+        @doc(description: "The default robots meta tag value, e.g. \"INDEX,FOLLOW\".")
+    customInstructions: String
+        @doc(description: "Custom robots.txt instructions configured in Admin.")
+}
+
+type Query {
+    robotsConfig: RobotsConfig
+        @resolver(class: "Magic\\PwaGraphQl\\Model\\Resolver\\RobotsConfig")
+        @doc(description: "Robots meta tag configuration for the storefront.")
+}
