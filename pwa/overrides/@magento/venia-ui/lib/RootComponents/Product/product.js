@@ -6,9 +6,9 @@ import { gql } from '@apollo/client';
 import { useProduct } from '@magento/peregrine/lib/talons/RootComponents/Product/useProduct';
 import ErrorView from '@magento/venia-ui/lib/components/ErrorView';
 import { StoreTitle, Meta, Link } from '@magento/venia-ui/lib/components/Head';
-import ProductFullDetail from '@magento/venia-ui/lib/components/ProductFullDetail';
-import mapProduct from '@magento/venia-ui/lib/util/mapProduct';
 import ProductShimmer from '@magento/venia-ui/lib/RootComponents/Product/product.shimmer';
+
+import ProductDetail from '../../../../../../src/moonCartTheme/ProductDetail/ProductDetail';
 
 /**
  * Stock venia-ui's own product.js pulls in Peregrine's
@@ -25,26 +25,54 @@ import ProductShimmer from '@magento/venia-ui/lib/RootComponents/Product/product
  * server-side (see var/log/exception.log) rather than returning a
  * normal GraphQL error response.
  *
- * This is the same fragment-swap fix already used for Header's cart
- * badge and ProductFullDetail's add-to-cart mutation: keep the real
- * useProduct talon (URL-key resolution, mapProduct, page-loading/
- * eventing wiring — all correct and unrelated to this bug) but hand it
- * our own query via its `operations` prop, with `custom_attributes`
- * (and the broken inline fragment inside it) simply dropped. Every
- * other field below is copied verbatim from Peregrine's own fragment.
- *
- * This still renders stock venia-ui's own <ProductFullDetail> —
- * unstyled/un-rebranded. The MoonCart-themed PDP is a separate,
- * follow-up piece of work.
+ * Same fragment-swap fix already used for Header's cart badge and
+ * ProductFullDetail's add-to-cart mutation: keep the real useProduct
+ * talon (URL-key resolution, mapProduct, page-loading/eventing wiring
+ * — all correct and unrelated to this bug) but hand it our own query
+ * via its `operations` prop. `custom_attributes`/`ProductAttributeMetadata`
+ * are dropped entirely; everything else below is the real, full data
+ * the MoonCart PDP (ProductDetail.js) needs — configurable options,
+ * variants (with their own real price/stock/images), related products,
+ * and reviews — all in this one query rather than the multiple
+ * follow-up queries Quick View needed (this is the primary page load,
+ * not a modal opened from already-fetched card data).
  */
+const RELATED_PRODUCT_FIELDS = gql`
+    fragment MoonCartRelatedProductFields on ProductInterface {
+        uid
+        name
+        sku
+        url_key
+        stock_status
+        rating_summary
+        __typename
+        small_image {
+            url
+        }
+        price_range {
+            maximum_price {
+                final_price {
+                    value
+                    currency
+                }
+                regular_price {
+                    value
+                    currency
+                }
+                discount {
+                    amount_off
+                }
+            }
+        }
+    }
+`;
+
 const PRODUCT_DETAILS_FRAGMENT = gql`
     fragment MoonCartProductDetailsFragment on ProductInterface {
         __typename
         categories {
             uid
-            breadcrumbs {
-                category_uid
-            }
+            name
         }
         description {
             html
@@ -54,26 +82,18 @@ const PRODUCT_DETAILS_FRAGMENT = gql`
         }
         id
         uid
-        media_gallery_entries {
-            uid
-            label
-            position
-            disabled
-            file
+        media_gallery {
+            url
         }
         meta_description
         name
-        price {
-            regularPrice {
-                amount {
-                    currency
-                    value
-                }
-            }
-        }
         price_range {
             maximum_price {
                 final_price {
+                    currency
+                    value
+                }
+                regular_price {
                     currency
                     value
                 }
@@ -88,6 +108,20 @@ const PRODUCT_DETAILS_FRAGMENT = gql`
         }
         stock_status
         url_key
+        rating_summary
+        review_count
+        reviews(pageSize: 50) {
+            items {
+                nickname
+                summary
+                text
+                created_at
+                average_rating
+            }
+        }
+        related_products {
+            ...MoonCartRelatedProductFields
+        }
         ... on ConfigurableProduct {
             configurable_options {
                 attribute_code
@@ -102,9 +136,6 @@ const PRODUCT_DETAILS_FRAGMENT = gql`
                     use_default_value
                     value_index
                     swatch_data {
-                        ... on ImageSwatchData {
-                            thumbnail
-                        }
                         value
                     }
                 }
@@ -116,26 +147,18 @@ const PRODUCT_DETAILS_FRAGMENT = gql`
                 }
                 product {
                     uid
-                    media_gallery_entries {
-                        uid
-                        disabled
-                        file
-                        label
-                        position
-                    }
                     sku
                     stock_status
-                    price {
-                        regularPrice {
-                            amount {
-                                currency
-                                value
-                            }
-                        }
+                    media_gallery {
+                        url
                     }
                     price_range {
                         maximum_price {
                             final_price {
+                                currency
+                                value
+                            }
+                            regular_price {
                                 currency
                                 value
                             }
@@ -148,6 +171,7 @@ const PRODUCT_DETAILS_FRAGMENT = gql`
             }
         }
     }
+    ${RELATED_PRODUCT_FIELDS}
 `;
 
 const GET_PRODUCT_DETAIL_QUERY = gql`
@@ -163,23 +187,35 @@ const GET_PRODUCT_DETAIL_QUERY = gql`
     ${PRODUCT_DETAILS_FRAGMENT}
 `;
 
-// venia-ui's own <ProductFullDetail> (below) uses
-// useProductFullDetail, which — for a configurable product, once
-// options are selected — spreads `variant.product.custom_attributes`
-// with no guard. Since that field isn't requested above (it doesn't
-// exist in this schema at all — see the big comment above), it would
-// be `undefined` there and crash on the first option pick. Same
-// defensive shim already used in QuickViewModal.js/useCompareList.js.
+// venia-ui's own mapProduct util flattens `description`/`small_image`
+// from their real `{ html }`/`{ url }` object shapes into plain
+// strings, for backwards compatibility with stock <ProductFullDetail>
+// (which this project no longer renders — see ProductDetail.js).
+// ProductDetail.js expects the real object shapes (same as every
+// other component in this project — QuickViewModal.js, category
+// cards, ...), so this is a plain passthrough instead, not
+// venia-ui's mapProduct.
+//
+// It also adds the same two shims QuickViewModal.js needs:
+// useProductFullDetail spreads both `variant.product.custom_attributes`
+// AND `variant.product.media_gallery_entries` with no guard once
+// options are selected. Neither is requested above
+// (custom_attributes doesn't exist in this schema at all — see the
+// big comment above; media_gallery_entries is simply not requested
+// since ProductDetail.js renders its own gallery from `media_gallery`
+// instead), so both are shimmed to an empty array here.
 const mapProductWithSafeShims = rawProduct => {
-    const mapped = mapProduct(rawProduct);
+    const mapped = { ...rawProduct };
     return {
         ...mapped,
         custom_attributes: [],
+        media_gallery_entries: [],
         variants: (mapped.variants || []).map(variant => ({
             ...variant,
             product: {
                 ...variant.product,
-                custom_attributes: []
+                custom_attributes: [],
+                media_gallery_entries: []
             }
         }))
     };
@@ -225,7 +261,13 @@ const Product = props => {
             <StoreTitle>{product.name}</StoreTitle>
             <Meta name="description" content={product.meta_description} />
             {canonicalUrl && <Link rel="canonical" href={canonicalUrl} />}
-            <ProductFullDetail product={product} />
+            {/*
+                key={product.uid}: forces a fresh mount (and so, fresh
+                internal talon state) on every product navigation —
+                see ProductDetail.js's own doc comment for why that
+                matters for useProductFullDetail specifically.
+            */}
+            <ProductDetail key={product.uid} product={product} />
         </Fragment>
     );
 };
